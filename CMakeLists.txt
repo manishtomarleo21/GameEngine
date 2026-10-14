@@ -16,6 +16,7 @@ add_library(Engine
     src/Engine/Core/Window.cpp
     src/Engine/Input/Input.cpp
     src/Engine/Core/Time.cpp
+    src/Engine/Entity/Entity.cpp
     # src/Engine/Renderer/Renderer.cpp
 )
 

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Engine/Core/Window.h"
+#include "Engine/Entity/Entity.h"
 #include <memory>
+#include <vector>
 
 class Application {
     public: 
@@ -14,10 +16,6 @@ class Application {
         std::unique_ptr<Window> m_Window;
         bool m_Running = true;
 
-        float m_RectX = 100.0f;
-        float m_RectY = 200.0f;
-        float m_RectW = 80.0f;
-        float m_RectH = 80.0f;
-        float m_Speed = 300.0f;   // pixels per second
+       std::vector<std::unique_ptr<Entity>> m_Entities;
 
 };
