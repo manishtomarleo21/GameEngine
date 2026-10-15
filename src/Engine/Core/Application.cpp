@@ -3,14 +3,20 @@
 #include "Engine/Input/Input.h"
 #include "Engine/Core/Time.h"
 #include "Engine/Entity/Entity.h"
+#include "Engine/Entity/Player.h"
 
 Application::Application(){
     Time::Init();
     m_Window = std::make_unique<Window>("Game Engine", 1280, 720);
 
-    auto player = std::make_unique<Entity>(100.0f, 200.0f, 80.0f, 80.0f);
-    player->SetColor(220, 50, 50);
+    // auto player = std::make_unique<Entity>(100.0f, 200.0f, 80.0f, 80.0f);
+    // player->SetColor(220, 50, 50);
+    // m_Entities.push_back(std::move(player));
+
+    //Create Player
+    auto player = std::make_unique<Player>(100.0f, 200.0f, 80.0f, 80.0f);
     m_Entities.push_back(std::move(player));
+
 
     //Second entity for testing only
     auto other = std::make_unique<Entity>(400.0f, 300.0f, 60.0f, 60.0f);
@@ -34,26 +40,6 @@ void Application::Run(){
         }
 
         Input::Update();
-
-        if(!m_Entities.empty()){
-            
-            float moveX = 0.0f;
-            float moveY = 0.0f;
-
-            if (Input::IsKeyPressed(SDL_SCANCODE_LEFT)  || Input::IsKeyPressed(SDL_SCANCODE_A)) moveX -= 1.0f;
-            if (Input::IsKeyPressed(SDL_SCANCODE_RIGHT) || Input::IsKeyPressed(SDL_SCANCODE_D)) moveX += 1.0f;
-            if (Input::IsKeyPressed(SDL_SCANCODE_UP)    || Input::IsKeyPressed(SDL_SCANCODE_W)) moveY -= 1.0f;
-            if (Input::IsKeyPressed(SDL_SCANCODE_DOWN)  || Input::IsKeyPressed(SDL_SCANCODE_S)) moveY += 1.0f;
-
-            //Diagonal Movement
-            if (moveX != 0.0f && moveY != 0.0f) {
-                moveX *= 0.7071f;
-                moveY *= 0.7071f;
-            }
-
-            float speed = 400.0f;
-            m_Entities[0]->SetVelocity(moveX * speed, moveY * speed);
-        }
 
         //Update entities
         for(auto& entity : m_Entities){
