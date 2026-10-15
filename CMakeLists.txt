@@ -18,6 +18,7 @@ add_library(Engine
     src/Engine/Core/Time.cpp
     src/Engine/Entity/Entity.cpp
     src/Engine/Entity/Player.cpp
+    src/Engine/Physics/Collision.cpp
     # src/Engine/Renderer/Renderer.cpp
 )
 

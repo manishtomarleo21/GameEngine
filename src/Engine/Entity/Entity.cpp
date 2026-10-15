@@ -1,4 +1,5 @@
 #include "Engine/Entity/Entity.h"
+#include <algorithm>
 
 Entity::Entity(float x, float y, float w, float h)
     : m_X(x), m_Y(y), m_W(w), m_H(h){

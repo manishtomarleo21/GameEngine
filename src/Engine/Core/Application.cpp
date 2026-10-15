@@ -4,19 +4,15 @@
 #include "Engine/Core/Time.h"
 #include "Engine/Entity/Entity.h"
 #include "Engine/Entity/Player.h"
+#include "Engine/Physics/Collision.h"
 
 Application::Application(){
     Time::Init();
     m_Window = std::make_unique<Window>("Game Engine", 1280, 720);
 
-    // auto player = std::make_unique<Entity>(100.0f, 200.0f, 80.0f, 80.0f);
-    // player->SetColor(220, 50, 50);
-    // m_Entities.push_back(std::move(player));
-
     //Create Player
     auto player = std::make_unique<Player>(100.0f, 200.0f, 80.0f, 80.0f);
     m_Entities.push_back(std::move(player));
-
 
     //Second entity for testing only
     auto other = std::make_unique<Entity>(400.0f, 300.0f, 60.0f, 60.0f);
@@ -64,6 +60,10 @@ void Application::Run(){
             if (y + h > windowH) y = windowH - h;
 
             player->SetPosition(x, y);
+        }
+
+        if (!m_Entities.empty()){
+            Collision::ProcessPlayerCollisions(*m_Entities[0], m_Entities);
         }
 
         // m_Window->SwapBuffers();
