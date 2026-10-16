@@ -19,6 +19,7 @@ add_library(Engine
     src/Engine/Entity/Entity.cpp
     src/Engine/Entity/Player.cpp
     src/Engine/Physics/Collision.cpp
+    src/Engine/Scene/Scene.cpp
     # src/Engine/Renderer/Renderer.cpp
 )
 
