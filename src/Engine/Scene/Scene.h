@@ -18,6 +18,8 @@ class Scene
         // Helper to keep player inside window
         void KeepPlayerInBounds(int windowWidth, int windowHeight);
         void SetPlayerTexture(std::shared_ptr<Texture> texture);
+        
+        void AddEntity(float x, float y, std::shared_ptr<Texture> texture);
     
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;

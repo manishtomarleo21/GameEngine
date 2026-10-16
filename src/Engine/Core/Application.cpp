@@ -6,19 +6,29 @@
 #include "Engine/Entity/Player.h"
 #include "Engine/Physics/Collision.h"
 #include "Engine/Renderer/Texture.h"
+#include "Engine/Resources/TextureManager.h"
 #include <memory>
 
 Application::Application(){
     Time::Init();
-    m_Window = std::make_unique<Window>("Game Engine", 1920, 1080);
+    m_Window = std::make_unique<Window>("Game Engine", 1280, 720);
     m_Scene = std::make_unique<Scene>();
 
-    auto playerTex = std::make_shared<Texture>();
-    if (playerTex->LoadfromFile(m_Window->GetRenderer(), "assets/textures/player.png")) {
-        m_Scene->SetPlayerTexture(playerTex);
-        std::cout << "Player texture loaded successfully!" << std::endl;
-    } else {
-        std::cout << "Could not load player texture (using colored rectangle instead)" << std::endl;
+    auto& tm = TextureManager::Get();
+    SDL_Renderer* renderer = m_Window->GetRenderer();
+
+   auto playerTex = tm.Load(renderer, "assets/textures/player.png");
+   if(playerTex) m_Scene->SetPlayerTexture(playerTex);
+
+   auto enemyTex = tm.Load(renderer, "assets/textures/fly.png");
+   if(enemyTex){
+        m_Scene->AddEntity(500.0f, 200.0f, enemyTex);
+        m_Scene->AddEntity(700.0f, 400.0f, enemyTex);   // same texture reused
+   }
+
+   auto boxTex = tm.Load(renderer, "assets/textures/bird.png");
+    if (boxTex) {
+        m_Scene->AddEntity(300.0f, 500.0f, boxTex);
     }
 }
 

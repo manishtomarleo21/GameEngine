@@ -22,6 +22,7 @@ add_library(Engine
     src/Engine/Physics/Collision.cpp
     src/Engine/Scene/Scene.cpp
     src/Engine/Renderer/Texture.cpp
+    src/Engine/Resources/TextureManager.cpp
     # src/Engine/Renderer/Renderer.cpp
 )
 

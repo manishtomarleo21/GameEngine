@@ -47,8 +47,8 @@ void Entity::SetVelocity(float vx, float vy) {
 void Entity::SetTexture(std::shared_ptr<Texture> texture) {
     m_Texture = texture;
     if (m_Texture) {
-        // Optional: auto-size the entity to the texture
-        // m_W = static_cast<float>(m_Texture->GetWidth());
-        // m_H = static_cast<float>(m_Texture->GetHeight());
+        // Automatically match entity size to the texture
+        // m_W = m_Texture->GetWidth();
+        // m_H = m_Texture->GetHeight();
     }
 }

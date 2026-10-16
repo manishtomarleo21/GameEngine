@@ -50,3 +50,11 @@ void Scene::SetPlayerTexture(std::shared_ptr<Texture> texture){
         m_Entities[0]->SetTexture(texture);
     }
 }
+
+void Scene::AddEntity(float x, float y, std::shared_ptr<Texture> texture){
+    if(!texture) return;
+
+    auto entity = std::make_unique<Entity>(x, y, texture->GetWidth(), texture->GetHeight());
+    entity->SetTexture(texture);
+    m_Entities.push_back(std::move(entity));
+}
