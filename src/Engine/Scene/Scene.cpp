@@ -24,7 +24,13 @@ void Scene::Update(float deltaTime){
 
 void Scene::Renderer(SDL_Renderer* renderer) {
     for (auto& entity : m_Entities) {
+        // Temporary offset by camera
+        float originalX = entity->GetX();
+        float originalY = entity->GetY();
+
+        entity->SetPosition(originalX - m_Camera.GetX(), originalY - m_Camera.GetY());
         entity->Renderer(renderer);
+        entity->SetPosition(originalX, originalY); // restore
     }
 }
 
@@ -57,4 +63,13 @@ void Scene::AddEntity(float x, float y, std::shared_ptr<Texture> texture){
     auto entity = std::make_unique<Entity>(x, y, texture->GetWidth(), texture->GetHeight());
     entity->SetTexture(texture);
     m_Entities.push_back(std::move(entity));
+}
+
+void Scene::UpdateCamera(float windowWidth, float windowHeight) {
+    if (m_Entities.empty()) return;
+
+    float playerX = m_Entities[0]->GetX() + m_Entities[0]->GetW() / 2.0f;
+    float playerY = m_Entities[0]->GetY() + m_Entities[0]->GetH() / 2.0f;
+
+    m_Camera.Follow(playerX, playerY, windowWidth, windowHeight);
 }

@@ -3,6 +3,7 @@
 #include "Engine/Entity/Entity.h"
 #include "Engine/Entity/Player.h"
 #include "Engine/Renderer/Texture.h"
+#include "Engine/Camera/Camera.h"
 #include <vector>
 #include <memory>
 
@@ -20,8 +21,12 @@ class Scene
         void SetPlayerTexture(std::shared_ptr<Texture> texture);
         
         void AddEntity(float x, float y, std::shared_ptr<Texture> texture);
+
+        Camera& GetCamera() { return m_Camera; }
+        void UpdateCamera(float windowWidth, float windowHeight);
     
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
+        Camera m_Camera;
 };
 

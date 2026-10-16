@@ -7,6 +7,7 @@
 #include "Engine/Physics/Collision.h"
 #include "Engine/Renderer/Texture.h"
 #include "Engine/Resources/TextureManager.h"
+#include "Engine/Camera/Camera.h"
 #include <memory>
 
 Application::Application(){
@@ -54,6 +55,9 @@ void Application::Run(){
         int windowW, windowH;
         m_Window->GetSize(windowW, windowH);
         m_Scene->KeepPlayerInBounds(windowW, windowH);
+
+        // Camera follows player
+        m_Scene->UpdateCamera(static_cast<float>(windowW), static_cast<float>(windowH));
 
         m_Window->Clear(0.1f, 0.1f, 0.2f); //Dark Blue Color Window
         m_Scene->Renderer(m_Window->GetRenderer());

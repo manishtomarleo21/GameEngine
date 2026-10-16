@@ -23,6 +23,7 @@ add_library(Engine
     src/Engine/Scene/Scene.cpp
     src/Engine/Renderer/Texture.cpp
     src/Engine/Resources/TextureManager.cpp
+    src/Engine/Camera/Camera.cpp
     # src/Engine/Renderer/Renderer.cpp
 )
 
