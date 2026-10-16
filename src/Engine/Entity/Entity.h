@@ -1,6 +1,8 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include "Engine/Renderer/Texture.h"
+#include <memory>
 
 class Entity {
     public:
@@ -20,6 +22,8 @@ class Entity {
         void SetColor(Uint8 r, Uint8 g, Uint8 b);
         void SetVelocity(float vx, float vy);
 
+        void SetTexture(std::shared_ptr<Texture> texture);
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -29,4 +33,6 @@ class Entity {
         Uint8 m_ColorR = 255;
         Uint8 m_ColorG = 255;
         Uint8 m_ColorB = 255;
+
+        std::shared_ptr<Texture> m_Texture;
 };

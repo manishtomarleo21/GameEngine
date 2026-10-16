@@ -5,11 +5,21 @@
 #include "Engine/Entity/Entity.h"
 #include "Engine/Entity/Player.h"
 #include "Engine/Physics/Collision.h"
+#include "Engine/Renderer/Texture.h"
+#include <memory>
 
 Application::Application(){
     Time::Init();
     m_Window = std::make_unique<Window>("Game Engine", 1920, 1080);
     m_Scene = std::make_unique<Scene>();
+
+    auto playerTex = std::make_shared<Texture>();
+    if (playerTex->LoadfromFile(m_Window->GetRenderer(), "assets/textures/player.png")) {
+        m_Scene->SetPlayerTexture(playerTex);
+        std::cout << "Player texture loaded successfully!" << std::endl;
+    } else {
+        std::cout << "Could not load player texture (using colored rectangle instead)" << std::endl;
+    }
 }
 
 Application::~Application(){

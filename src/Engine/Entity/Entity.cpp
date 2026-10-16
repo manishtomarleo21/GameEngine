@@ -13,8 +13,14 @@ void Entity::Update(float deltaTime){
 
 void Entity::Renderer(SDL_Renderer* renderer){
     SDL_FRect rect = { m_X, m_Y, m_W, m_H };
-    SDL_SetRenderDrawColor(renderer, m_ColorR, m_ColorG, m_ColorB, 255);
-    SDL_RenderFillRect(renderer, &rect);
+
+    if(m_Texture && m_Texture->GetSDLTexture()){
+        SDL_RenderTexture(renderer, m_Texture->GetSDLTexture(), nullptr, &rect);
+    }
+    else{
+        SDL_SetRenderDrawColor(renderer, m_ColorR, m_ColorG, m_ColorB, 255);
+        SDL_RenderFillRect(renderer, &rect);
+    }
 }
 
 void Entity::SetPosition(float x, float y){
@@ -36,4 +42,13 @@ void Entity::SetColor(Uint8 r, Uint8 g, Uint8 b) {
 void Entity::SetVelocity(float vx, float vy) {
     m_VelX = vx;
     m_VelY = vy;
+}
+
+void Entity::SetTexture(std::shared_ptr<Texture> texture) {
+    m_Texture = texture;
+    if (m_Texture) {
+        // Optional: auto-size the entity to the texture
+        // m_W = static_cast<float>(m_Texture->GetWidth());
+        // m_H = static_cast<float>(m_Texture->GetHeight());
+    }
 }

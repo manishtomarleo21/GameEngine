@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 #find Pacakage
 find_package(SDL3 REQUIRED)
+find_package(SDL3_image REQUIRED)
 find_package(glm REQUIRED)
 
 # Engine library
@@ -20,6 +21,7 @@ add_library(Engine
     src/Engine/Entity/Player.cpp
     src/Engine/Physics/Collision.cpp
     src/Engine/Scene/Scene.cpp
+    src/Engine/Renderer/Texture.cpp
     # src/Engine/Renderer/Renderer.cpp
 )
 
@@ -30,6 +32,7 @@ target_include_directories(Engine PUBLIC
 
 target_link_libraries(Engine PUBLIC
     SDL3::SDL3
+    SDL3_image::SDL3_image
     glm::glm
 )
 

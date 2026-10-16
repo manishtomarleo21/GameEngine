@@ -44,3 +44,9 @@ void Scene::KeepPlayerInBounds(int windowWidth, int windowHeight) {
 
     player->SetPosition(x, y);
 }
+
+void Scene::SetPlayerTexture(std::shared_ptr<Texture> texture){
+    if (!m_Entities.empty() && texture) {
+        m_Entities[0]->SetTexture(texture);
+    }
+}
