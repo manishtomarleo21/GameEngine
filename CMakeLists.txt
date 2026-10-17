@@ -11,6 +11,18 @@ find_package(SDL3 REQUIRED)
 find_package(SDL3_image REQUIRED)
 find_package(glm REQUIRED)
 
+set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui)
+
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_sdl3.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_sdlrenderer3.cpp
+)
+
 # Engine library
 add_library(Engine
     src/Engine/Core/Application.cpp
@@ -24,12 +36,16 @@ add_library(Engine
     src/Engine/Renderer/Texture.cpp
     src/Engine/Resources/TextureManager.cpp
     src/Engine/Camera/Camera.cpp
+    src/Engine/UI/ImGuiLayer.cpp
     # src/Engine/Renderer/Renderer.cpp
+    ${IMGUI_SOURCES}
 )
 
 target_include_directories(Engine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${SDL3_INCLUDE_DIRS}
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
 )
 
 target_link_libraries(Engine PUBLIC

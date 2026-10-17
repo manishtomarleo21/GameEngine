@@ -3,6 +3,7 @@
 #include "Engine/Core/Window.h"
 #include "Engine/Entity/Entity.h"
 #include "Engine/Scene/Scene.h"
+#include "Engine/UI/ImGuiLayer.h"
 #include <memory>
 #include <vector>
 
@@ -16,6 +17,7 @@ class Application {
     private:
         std::unique_ptr<Window> m_Window;
         std::unique_ptr<Scene> m_Scene;
+        std::unique_ptr<ImGuiLayer> m_ImGui;
         bool m_Running = true;
 
 };
