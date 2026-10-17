@@ -24,9 +24,12 @@ class Scene
 
         Camera& GetCamera() { return m_Camera; }
         void UpdateCamera(float windowWidth, float windowHeight, float deltaTime);
+        void EnableGravityOnEntity(size_t index, float gravityScale = 1.0f, float bounciness = 0.7f);
+        void SetFloorY(float y);
     
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
         Camera m_Camera;
+        float m_FloorY = 700.0f;
 };
 

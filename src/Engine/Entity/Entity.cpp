@@ -7,6 +7,11 @@ Entity::Entity(float x, float y, float w, float h)
     }
 
 void Entity::Update(float deltaTime){
+    // Apply gravity
+    const float GRAVITY =  980.0f;
+    m_VelY += GRAVITY * m_GravityScale * deltaTime;
+
+    //Apply Velocity
     m_X += m_VelX * deltaTime;
     m_Y += m_VelY * deltaTime;
 }
@@ -51,4 +56,17 @@ void Entity::SetTexture(std::shared_ptr<Texture> texture) {
         // m_W = m_Texture->GetWidth();
         // m_H = m_Texture->GetHeight();
     }
+}
+
+void Entity::AddVelocity(float vx, float vy) {
+    m_VelX += vx;
+    m_VelY += vy;
+}
+
+void Entity::SetGravityScale(float scale) {
+    m_GravityScale = scale;
+}
+
+void Entity::SetBounciness(float value) {
+    m_Bounciness = value;
 }

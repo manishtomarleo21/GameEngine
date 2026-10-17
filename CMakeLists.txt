@@ -37,6 +37,7 @@ add_library(Engine
     src/Engine/Resources/TextureManager.cpp
     src/Engine/Camera/Camera.cpp
     src/Engine/UI/ImGuiLayer.cpp
+    src/Engine/Physics/Physics.cpp
     # src/Engine/Renderer/Renderer.cpp
     ${IMGUI_SOURCES}
 )

@@ -30,10 +30,13 @@ Application::Application(){
         m_Scene->AddEntity(700.0f, 400.0f, enemyTex);   // same texture reused
    }
 
-   auto boxTex = tm.Load(renderer, "assets/textures/bird.png");
-    if (boxTex) {
-        m_Scene->AddEntity(300.0f, 500.0f, boxTex);
-    }
+//    auto boxTex = tm.Load(renderer, "assets/textures/bird.png");
+//     if (boxTex) {
+//         m_Scene->AddEntity(300.0f, 500.0f, boxTex);
+//     }
+
+    m_Scene->EnableGravityOnEntity(1, 1.0f, 0.7f);
+    // m_Scene->EnableGravityOnEntity(2, 1.0f, 0.6f); // optional
 }
 
 Application::~Application(){
@@ -67,6 +70,7 @@ void Application::Run(){
 
         int windowW, windowH;
         m_Window->GetSize(windowW, windowH);
+        m_Scene->SetFloorY(static_cast<float>(windowH));
         m_Scene->KeepPlayerInBounds(windowW, windowH);
 
         // Camera follows player
