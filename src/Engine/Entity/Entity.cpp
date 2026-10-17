@@ -70,3 +70,7 @@ void Entity::SetGravityScale(float scale) {
 void Entity::SetBounciness(float value) {
     m_Bounciness = value;
 }
+
+void Entity::SetFriction(float friction) {
+    m_Friction = friction;
+}

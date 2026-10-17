@@ -33,6 +33,9 @@ class Entity {
         float GetBounciness() const { return m_Bounciness; }
         float GetGravityScale() const { return m_GravityScale; } 
 
+        void SetFriction(float friction);          // 0.0 = no friction, 1.0 = full stop
+        float GetFriction() const { return m_Friction; }
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -40,6 +43,7 @@ class Entity {
         float m_VelY = 0.0f;
         float m_GravityScale = 0.0f;   // 0 by default (so existing entities don't fall)
         float m_Bounciness = 0.5f;  
+        float m_Friction = 0.0f;
 
         Uint8 m_ColorR = 255;
         Uint8 m_ColorG = 255;

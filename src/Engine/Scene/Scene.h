@@ -25,6 +25,7 @@ class Scene
         Camera& GetCamera() { return m_Camera; }
         void UpdateCamera(float windowWidth, float windowHeight, float deltaTime);
         void EnableGravityOnEntity(size_t index, float gravityScale = 1.0f, float bounciness = 0.7f);
+        void SetEntityFriction(size_t index, float friction);
         void SetFloorY(float y);
     
     private:

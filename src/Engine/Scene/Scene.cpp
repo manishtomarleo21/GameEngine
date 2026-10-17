@@ -91,3 +91,9 @@ void Scene::EnableGravityOnEntity(size_t index, float gravityScale, float bounci
 void Scene::SetFloorY(float y) {
     m_FloorY = y;
 }
+
+void Scene::SetEntityFriction(size_t index, float friction){
+    if(index < m_Entities.size()){
+        m_Entities[index]->SetFriction(friction);
+    }
+}

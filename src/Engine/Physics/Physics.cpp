@@ -9,15 +9,29 @@ void Physics::ApplyFloorCollision(std::vector<std::unique_ptr<Entity>>& entities
         if(bottom > floorY){
             entity->SetPosition(entity->GetX(), floorY - entity->GetH());
 
-            //Bounce
+            float velX = entity->GetVelX();
             float velY = entity->GetVelY();
-            float newVelY = -velY * entity->GetBounciness();
+
+            // Bounce on Y
+            velY = -velY * entity->GetBounciness();
 
             // stop tiny bouncing
-            if (std::abs(newVelY) < 40.0f) {
-                newVelY = 0.0f;
+            if (std::abs(velY) < 40.0f) {
+                velY = 0.0f;
             }
-            entity->SetVelocity(entity->GetVelX(), newVelY);
+
+            // Apply friction on X when on ground
+            if (velY == 0.0f) {  // only when resting on floor
+                float friction = entity->GetFriction();
+                velX *= (1.0f - friction);
+
+                // Stop tiny sliding
+                if (std::abs(velX) < 15.0f) {
+                    velX = 0.0f;
+                }
+            }
+
+            entity->SetVelocity(velX, velY);
         }
 
     }

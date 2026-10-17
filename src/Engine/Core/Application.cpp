@@ -37,6 +37,7 @@ Application::Application(){
 
     m_Scene->EnableGravityOnEntity(1, 1.0f, 0.7f);
     // m_Scene->EnableGravityOnEntity(2, 1.0f, 0.6f); // optional
+    m_Scene->SetEntityFriction(1, 0.15f);
 }
 
 Application::~Application(){
