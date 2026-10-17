@@ -97,3 +97,8 @@ void Scene::SetEntityFriction(size_t index, float friction){
         m_Entities[index]->SetFriction(friction);
     }
 }
+
+void Scene::SetCameraBounds(float minX, float minY, float maxX, float maxY){
+    m_Camera.SetBounds(minX, minY, maxX, maxY);
+    m_Camera.EnableBounds(true);
+}

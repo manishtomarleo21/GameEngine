@@ -34,7 +34,7 @@ Application::Application(){
 //     if (boxTex) {
 //         m_Scene->AddEntity(300.0f, 500.0f, boxTex);
 //     }
-
+    m_Scene->SetCameraBounds(0.0f, 0.0f, 2000.0f, 1200.0f); 
     m_Scene->EnableGravityOnEntity(1, 1.0f, 0.7f);
     // m_Scene->EnableGravityOnEntity(2, 1.0f, 0.6f); // optional
     m_Scene->SetEntityFriction(1, 0.15f);

@@ -27,6 +27,7 @@ class Scene
         void EnableGravityOnEntity(size_t index, float gravityScale = 1.0f, float bounciness = 0.7f);
         void SetEntityFriction(size_t index, float friction);
         void SetFloorY(float y);
+        void SetCameraBounds(float minX, float minY, float maxX, float maxY);
     
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
