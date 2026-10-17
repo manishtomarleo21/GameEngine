@@ -57,7 +57,7 @@ void Application::Run(){
         m_Scene->KeepPlayerInBounds(windowW, windowH);
 
         // Camera follows player
-        m_Scene->UpdateCamera(static_cast<float>(windowW), static_cast<float>(windowH));
+        m_Scene->UpdateCamera(static_cast<float>(windowW), static_cast<float>(windowH), deltaTime);
 
         m_Window->Clear(0.1f, 0.1f, 0.2f); //Dark Blue Color Window
         m_Scene->Renderer(m_Window->GetRenderer());

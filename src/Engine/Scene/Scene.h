@@ -23,7 +23,7 @@ class Scene
         void AddEntity(float x, float y, std::shared_ptr<Texture> texture);
 
         Camera& GetCamera() { return m_Camera; }
-        void UpdateCamera(float windowWidth, float windowHeight);
+        void UpdateCamera(float windowWidth, float windowHeight, float deltaTime);
     
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;

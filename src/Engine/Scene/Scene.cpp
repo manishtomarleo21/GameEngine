@@ -65,11 +65,11 @@ void Scene::AddEntity(float x, float y, std::shared_ptr<Texture> texture){
     m_Entities.push_back(std::move(entity));
 }
 
-void Scene::UpdateCamera(float windowWidth, float windowHeight) {
+void Scene::UpdateCamera(float windowWidth, float windowHeight, float deltaTime) {
     if (m_Entities.empty()) return;
 
     float playerX = m_Entities[0]->GetX() + m_Entities[0]->GetW() / 2.0f;
     float playerY = m_Entities[0]->GetY() + m_Entities[0]->GetH() / 2.0f;
 
-    m_Camera.Follow(playerX, playerY, windowWidth, windowHeight);
+    m_Camera.Follow(playerX, playerY, windowWidth, windowHeight, deltaTime);
 }
