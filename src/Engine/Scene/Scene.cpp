@@ -102,3 +102,34 @@ void Scene::SetCameraBounds(float minX, float minY, float maxX, float maxY){
     m_Camera.SetBounds(minX, minY, maxX, maxY);
     m_Camera.EnableBounds(true);
 }
+
+size_t Scene::GetEntityCount() const {
+    return m_Entities.size();
+}
+
+Entity* Scene::GetEntity(size_t index) {
+    if (index >= m_Entities.size()) return nullptr;
+    return m_Entities[index].get();
+}
+
+void Scene::SetBackgroundColor(float r, float g, float b) {
+    m_BgR = r;
+    m_BgG = g;
+    m_BgB = b;
+}
+
+void Scene::GetBackgroundColor(float& r, float& g, float& b) const {
+    r = m_BgR;
+    g = m_BgG;
+    b = m_BgB;
+}
+
+void Scene::CreateRectangleEntity(float x, float y, float w, float h, float r, float g, float b) {
+    auto entity = std::make_unique<Entity>(x, y, w, h);
+    entity->SetColor(
+        static_cast<Uint8>(r * 255),
+        static_cast<Uint8>(g * 255),
+        static_cast<Uint8>(b * 255)
+    );
+    m_Entities.push_back(std::move(entity));
+}
