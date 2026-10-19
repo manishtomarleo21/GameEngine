@@ -39,6 +39,20 @@ void Scene::Renderer(SDL_Renderer* renderer) {
         entity->Renderer(renderer);
         entity->SetPosition(originalX, originalY); // restore
     }
+
+    // Highlight selected entity
+    Entity* selected = GetSelectedEntityPtr();
+    if (selected) {
+        float x = selected->GetX() - m_Camera.GetX();
+        float y = selected->GetY() - m_Camera.GetY();
+        float w = selected->GetW();
+        float h = selected->GetH();
+
+        SDL_FRect outline = { x - 3.0f, y - 3.0f, w + 6.0f, h + 6.0f };
+
+        SDL_SetRenderDrawColor(renderer, 255, 220, 50, 255); // yellow
+        SDL_RenderRect(renderer, &outline);
+    }
 }
 
 void Scene::KeepPlayerInBounds(int windowWidth, int windowHeight) {
@@ -132,4 +146,67 @@ void Scene::CreateRectangleEntity(float x, float y, float w, float h, float r, f
         static_cast<Uint8>(b * 255)
     );
     m_Entities.push_back(std::move(entity));
+}
+
+void Scene::SetSelectedEntity(int index) {
+    if (index >= 0 && index < static_cast<int>(m_Entities.size())) {
+        m_SelectedEntity = index;
+    } else {
+        m_SelectedEntity = -1;
+    }
+}
+
+Entity* Scene::GetSelectedEntityPtr() {
+    if (m_SelectedEntity >= 0 && m_SelectedEntity < static_cast<int>(m_Entities.size())) {
+        return m_Entities[m_SelectedEntity].get();
+    }
+    return nullptr;
+}
+
+void Scene::CreateCircleEntity(float x, float y, float radius, float r, float g, float b) {
+    auto entity = std::make_unique<Entity>(x, y, radius * 2.0f, radius * 2.0f);
+    entity->SetShape(ShapeType::Circle);
+    entity->SetColor(
+        static_cast<Uint8>(r * 255),
+        static_cast<Uint8>(g * 255),
+        static_cast<Uint8>(b * 255)
+    );
+    m_Entities.push_back(std::move(entity));
+}
+
+void Scene::DeleteSelectedEntity() {
+    if (m_SelectedEntity < 0 || m_SelectedEntity >= static_cast<int>(m_Entities.size())) {
+        return;
+    }
+
+    m_Entities.erase(m_Entities.begin() + m_SelectedEntity);
+    m_SelectedEntity = -1; // clear selection
+}
+
+void Scene::DuplicateSelectedEntity() {
+    Entity* selected = GetSelectedEntityPtr();
+    if (!selected) return;
+
+    // Create a copy slightly offset
+    auto copy = std::make_unique<Entity>(
+        selected->GetX() + 30.0f,
+        selected->GetY() + 30.0f,
+        selected->GetW(),
+        selected->GetH()
+    );
+
+    copy->SetShape(selected->GetShape());
+    copy->SetColor(selected->GetColorR(), selected->GetColorG(), selected->GetColorB());
+    copy->SetGravityScale(selected->GetGravityScale());
+    copy->SetBounciness(selected->GetBounciness());
+    copy->SetFriction(selected->GetFriction());
+    copy->SetVelocity(selected->GetVelX(), selected->GetVelY());
+
+    // Optional: copy texture if it has one
+    // (We can improve this later)
+
+    m_Entities.push_back(std::move(copy));
+
+    // Select the new duplicated entity
+    m_SelectedEntity = static_cast<int>(m_Entities.size()) - 1;
 }

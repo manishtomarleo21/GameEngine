@@ -4,6 +4,11 @@
 #include "Engine/Renderer/Texture.h"
 #include <memory>
 
+enum class ShapeType {
+    Rectangle,
+    Circle
+};
+
 class Entity {
     public:
         Entity(float x, float y, float w, float h);
@@ -36,6 +41,13 @@ class Entity {
         void SetFriction(float friction);          // 0.0 = no friction, 1.0 = full stop
         float GetFriction() const { return m_Friction; }
 
+        void SetShape(ShapeType shape);
+        ShapeType GetShape() const { return m_Shape; }
+
+        Uint8 GetColorR() const { return m_ColorR; }
+        Uint8 GetColorG() const { return m_ColorG; }
+        Uint8 GetColorB() const { return m_ColorB; }
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -50,4 +62,5 @@ class Entity {
         Uint8 m_ColorB = 255;
 
         std::shared_ptr<Texture> m_Texture;
+        ShapeType m_Shape = ShapeType::Rectangle;
 };
