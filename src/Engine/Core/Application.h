@@ -4,6 +4,7 @@
 #include "Engine/Entity/Entity.h"
 #include "Engine/Scene/Scene.h"
 #include "Engine/UI/ImGuiLayer.h"
+#include "Engine/UI/EditorUI.h"
 #include <memory>
 #include <vector>
 
@@ -19,5 +20,6 @@ class Application {
         std::unique_ptr<Scene> m_Scene;
         std::unique_ptr<ImGuiLayer> m_ImGui;
         bool m_Running = true;
+        EditorUI m_EditorUI;
 
 };

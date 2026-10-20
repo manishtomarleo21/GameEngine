@@ -38,6 +38,7 @@ add_library(Engine
     src/Engine/Camera/Camera.cpp
     src/Engine/UI/ImGuiLayer.cpp
     src/Engine/Physics/Physics.cpp
+    src/Engine/UI/EditorUI.cpp
     # src/Engine/Renderer/Renderer.cpp
     ${IMGUI_SOURCES}
 )
