@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #find Pacakage
 find_package(SDL3 REQUIRED)
 find_package(SDL3_image REQUIRED)
+find_package(SDL3_mixer REQUIRED)
 find_package(glm REQUIRED)
 
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui)
@@ -39,6 +40,8 @@ add_library(Engine
     src/Engine/UI/ImGuiLayer.cpp
     src/Engine/Physics/Physics.cpp
     src/Engine/UI/EditorUI.cpp
+    src/Engine/UI/GameViewport.cpp
+    src/Engine/Audio/Audio.cpp
     # src/Engine/Renderer/Renderer.cpp
     ${IMGUI_SOURCES}
 )
@@ -53,6 +56,7 @@ target_include_directories(Engine PUBLIC
 target_link_libraries(Engine PUBLIC
     SDL3::SDL3
     SDL3_image::SDL3_image
+    SDL3_mixer::SDL3_mixer
     glm::glm
 )
 

@@ -8,12 +8,15 @@
 #include "Engine/Renderer/Texture.h"
 #include "Engine/Resources/TextureManager.h"
 #include "Engine/Camera/Camera.h"
+#include "Engine/Audio/Audio.h"
 #include "imgui.h"
 #include <memory>
 
 Application::Application(){
     Time::Init();
     m_Window = std::make_unique<Window>("Game Engine", 1280, 720);
+    m_GameViewport.Create(m_Window->GetRenderer(), 1280, 720);
+    Audio::Get().Init();
     m_ImGui = std::make_unique<ImGuiLayer>();
     m_ImGui->Init(m_Window->GetNativeWindow(), m_Window->GetRenderer());
     m_Scene = std::make_unique<Scene>();
@@ -29,6 +32,9 @@ Application::Application(){
         m_Scene->AddEntity(500.0f, 200.0f, enemyTex);
    }
 
+    Audio::Get().LoadSound("click", "assets/audio/click.wav");
+    Audio::Get().LoadMusic("bgm", "assets/audio/bgm.mp3");
+
     m_Scene->SetCameraBounds(0.0f, 0.0f, 2000.0f, 1200.0f); 
     m_Scene->EnableGravityOnEntity(1, 1.0f, 0.7f);
     // m_Scene->EnableGravityOnEntity(2, 1.0f, 0.6f); // optional
@@ -36,7 +42,7 @@ Application::Application(){
 }
 
 Application::~Application(){
-
+    Audio::Get().Shutdown();
 }
 
 void Application::Run(){
@@ -73,16 +79,45 @@ void Application::Run(){
 
         m_ImGui->BeginFrame();
         m_EditorUI.Draw(*m_Scene, deltaTime);
+
+        // === Game Viewport Window ===
+        ImGui::SetNextWindowPos(ImVec2(20, 40), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(900, 600), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Game");
+
+        ImVec2 size = ImGui::GetContentRegionAvail();
+        int vpW = static_cast<int>(size.x);
+        int vpH = static_cast<int>(size.y);
+
+        if (vpW > 0 && vpH > 0) {
+            m_GameViewport.Resize(vpW, vpH);
+
+            // Render scene into the texture
+            m_GameViewport.Begin();
+
+            float r, g, b;
+            m_Scene->GetBackgroundColor(r, g, b);
+            SDL_SetRenderDrawColor(m_Window->GetRenderer(),
+                static_cast<Uint8>(r * 255),
+                static_cast<Uint8>(g * 255),
+                static_cast<Uint8>(b * 255), 255);
+            SDL_RenderClear(m_Window->GetRenderer());
+
+            m_Scene->Renderer(m_Window->GetRenderer());
+
+            m_GameViewport.End();
+
+            // Show the texture inside ImGui
+            ImGui::Image((ImTextureID)(intptr_t)m_GameViewport.GetTexture(), size);
+        }
+
+        ImGui::End();
+
         m_ImGui->EndFrame();
 
-        float r, g, b;
-        m_Scene->GetBackgroundColor(r, g, b);
-        m_Window->Clear(r, g, b);
-        m_Scene->Renderer(m_Window->GetRenderer());
-
-        // Render ImGui on top
+        SDL_SetRenderDrawColor(m_Window->GetRenderer(), 20, 20, 22, 255);
+        SDL_RenderClear(m_Window->GetRenderer());
         m_ImGui->Renderer(m_Window->GetRenderer());
-
         m_Window->Present();
 
         Input::EndFrame();

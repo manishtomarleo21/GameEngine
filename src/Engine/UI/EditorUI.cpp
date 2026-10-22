@@ -1,4 +1,5 @@
 #include "Engine/UI/EditorUI.h"
+#include "Engine/Audio/Audio.h"
 #include "imgui.h"
 
 void EditorUI::Draw(Scene& scene, float deltaTime) {
@@ -38,7 +39,8 @@ void EditorUI::Draw(Scene& scene, float deltaTime) {
         ImGui::EndMainMenuBar();
     }
 
-    ImGui::SetNextWindowSize(ImVec2(360, 520), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(940, 40), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(360, 600), ImGuiCond_FirstUseEver);
     ImGui::Begin("Game Engine Editor", nullptr, ImGuiWindowFlags_NoCollapse);
 
     // ========== HEADER ==========
@@ -152,6 +154,19 @@ void EditorUI::Draw(Scene& scene, float deltaTime) {
             ImGui::PopStyleColor();
         } else {
             ImGui::TextDisabled("No entity selected");
+        }
+    }
+
+    //Audio
+    if (ImGui::CollapsingHeader("Audio", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::Button("Play Click Sound", ImVec2(-1, 0))) {
+            Audio::Get().PlaySound("click");
+        }
+        if (ImGui::Button("Play Music", ImVec2(-1, 0))) {
+            Audio::Get().PlayMusic("bgm", true);
+        }
+        if (ImGui::Button("Stop Music", ImVec2(-1, 0))) {
+            Audio::Get().StopMusic();
         }
     }
 
