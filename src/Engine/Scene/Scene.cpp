@@ -1,6 +1,9 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Physics/Collision.h"
 #include "Engine/Physics/Physics.h"
+#include <fstream>
+#include <sstream>
+#include <iostream>
 
 Scene::Scene() {
     // Create Player
@@ -209,4 +212,95 @@ void Scene::DuplicateSelectedEntity() {
 
     // Select the new duplicated entity
     m_SelectedEntity = static_cast<int>(m_Entities.size()) - 1;
+}
+
+bool Scene::SaveToFile(const std::string& path){
+    std::ofstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Failed to save scene: " << path << std::endl;
+        return false;
+    }
+    // Header
+    file << "SCENE_VERSION 1\n";
+    // Background
+    file << "BG " << m_BgR << " " << m_BgG << " " << m_BgB << "\n";
+    
+    for (auto& entity : m_Entities) {
+        if (!entity) continue;
+
+        file << "ENTITY "
+             << entity->GetX() << " "
+             << entity->GetY() << " "
+             << entity->GetW() << " "
+             << entity->GetH() << " "
+             << static_cast<int>(entity->GetShape()) << " "
+             << static_cast<int>(entity->GetColorR()) << " "
+             << static_cast<int>(entity->GetColorG()) << " "
+             << static_cast<int>(entity->GetColorB()) << " "
+             << entity->GetGravityScale() << " "
+             << entity->GetFriction() << " "
+             << entity->GetBounciness()
+             << "\n";
+    }
+    file.close();
+    std::cout << "Scene saved: " << path << std::endl;
+    return true;
+}
+
+bool Scene::LoadFromFile(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Failed to load scene: " << path << std::endl;
+        return false;
+    }
+
+    // Clear current entities
+    m_Entities.clear();
+    m_SelectedEntity = -1;
+
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+
+        std::istringstream ss(line);
+        std::string type;
+        ss >> type;
+
+        if (type == "BG") {
+            ss >> m_BgR >> m_BgG >> m_BgB;
+        }
+        else if (type == "ENTITY") {
+            float x, y, w, h;
+            int shape, r, g, b;
+            float gravity, friction, bounciness;
+
+            ss >> x >> y >> w >> h >> shape >> r >> g >> b >> gravity >> friction >> bounciness;
+
+            auto entity = std::make_unique<Entity>(x, y, w, h);
+            entity->SetShape(static_cast<ShapeType>(shape));
+            entity->SetColor(static_cast<Uint8>(r), static_cast<Uint8>(g), static_cast<Uint8>(b));
+            entity->SetGravityScale(gravity);
+            entity->SetFriction(friction);
+            entity->SetBounciness(bounciness);
+
+            m_Entities.push_back(std::move(entity));
+        }
+    }
+
+    file.close();
+    std::cout << "Scene loaded: " << path << std::endl;
+    return true;
+}
+
+int Scene::PickEntityAt(float worldX, float worldY) const {
+    for (int i = static_cast<int>(m_Entities.size()) - 1; i >= 0; --i) {
+        const Entity* e = m_Entities[i].get();
+        if (!e) continue;
+
+        if (worldX >= e->GetX() && worldX <= e->GetX() + e->GetW() &&
+            worldY >= e->GetY() && worldY <= e->GetY() + e->GetH()) {
+            return i;
+        }
+    }
+    return -1;
 }

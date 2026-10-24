@@ -170,6 +170,18 @@ void EditorUI::Draw(Scene& scene, float deltaTime) {
         }
     }
 
+    //Save
+    if (ImGui::CollapsingHeader("Scene", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::Button("Save Scene", ImVec2(-1, 0))) {
+        scene.SaveToFile("assets/scenes/scene1.txt");
+        // or "../assets/scenes/scene1.txt"
+    }
+
+    if (ImGui::Button("Load Scene", ImVec2(-1, 0))) {
+        scene.LoadFromFile("assets/scenes/scene1.txt");
+    }
+}
+
     // ========== UPCOMING FEATURES ==========
     if (ImGui::CollapsingHeader("Upcoming Features")) {
         ImGui::BeginDisabled();

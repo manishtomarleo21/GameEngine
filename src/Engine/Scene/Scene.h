@@ -6,6 +6,7 @@
 #include "Engine/Camera/Camera.h"
 #include <vector>
 #include <memory>
+#include <string>
 
 class Scene
 {
@@ -44,7 +45,10 @@ class Scene
         void DeleteSelectedEntity();
         void DuplicateSelectedEntity();
 
-    
+        bool SaveToFile(const std::string& path);
+        bool LoadFromFile(const std::string& path);
+
+        int PickEntityAt(float worldX, float worldY) const;
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
         Camera m_Camera;

@@ -24,4 +24,9 @@ class Application {
         EditorUI m_EditorUI;
         GameViewport m_GameViewport;
 
+        void HandleViewportInput(float canvasX, float canvasY, float canvasW, float canvasH);
+        bool  m_Dragging = false;
+        float m_DragOffsetX = 0.0f;
+        float m_DragOffsetY = 0.0f;
+
 };

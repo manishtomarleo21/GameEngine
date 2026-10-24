@@ -85,6 +85,7 @@ void Application::Run(){
         ImGui::SetNextWindowSize(ImVec2(900, 600), ImGuiCond_FirstUseEver);
         ImGui::Begin("Game");
 
+        ImVec2 canvasPos  = ImGui::GetCursorScreenPos(); // top-left of the game Window
         ImVec2 size = ImGui::GetContentRegionAvail();
         int vpW = static_cast<int>(size.x);
         int vpH = static_cast<int>(size.y);
@@ -109,6 +110,12 @@ void Application::Run(){
 
             // Show the texture inside ImGui
             ImGui::Image((ImTextureID)(intptr_t)m_GameViewport.GetTexture(), size);
+
+            //FIx to stop the Drag of ImGui window when moving dragging entity
+            ImGui::SetCursorScreenPos(canvasPos);
+            ImGui::InvisibleButton("GameViewportInput", size);
+            // Handle click + drag (clean call)
+            HandleViewportInput(canvasPos.x, canvasPos.y, size.x, size.y);
         }
 
         ImGui::End();
@@ -123,4 +130,54 @@ void Application::Run(){
         Input::EndFrame();
     }
     
+}
+
+void Application::HandleViewportInput(float canvasX, float canvasY, float canvasW, float canvasH) {
+    ImVec2 mouse = ImGui::GetMousePos();
+    bool hovered = ImGui::IsItemHovered();
+    bool active  = ImGui::IsItemActive();
+
+    float localX = mouse.x - canvasX;
+    float localY = mouse.y - canvasY;
+
+    // Ignore if mouse is outside the image
+    if (localX < 0 || localY < 0 || localX > canvasW || localY > canvasH) {
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+            m_Dragging = false;
+        }
+        return;
+    }
+
+    float worldX = localX + m_Scene->GetCamera().GetX();
+    float worldY = localY + m_Scene->GetCamera().GetY();
+
+    // Mouse pressed → select + start drag
+    if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        int hit = m_Scene->PickEntityAt(worldX, worldY);
+        m_Scene->SetSelectedEntity(hit);
+
+        if (hit >= 0) {
+            Entity* e = m_Scene->GetEntity(hit);
+            if (e) {
+                m_Dragging = true;
+                m_DragOffsetX = worldX - e->GetX();
+                m_DragOffsetY = worldY - e->GetY();
+            }
+        } else {
+            m_Dragging = false;
+        }
+    }
+
+    // Mouse held → drag
+    if (m_Dragging && active) {
+        Entity* selected = m_Scene->GetSelectedEntityPtr();
+        if (selected) {
+            selected->SetPosition(worldX - m_DragOffsetX, worldY - m_DragOffsetY);
+        }
+    }
+
+    // Mouse released → stop drag
+    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+        m_Dragging = false;
+    }
 }
