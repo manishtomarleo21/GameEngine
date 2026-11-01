@@ -2,6 +2,8 @@
 
 #include <SDL3/SDL.h>
 #include "Engine/Renderer/Texture.h"
+#include "Engine/Animation/Animation.h"
+#include <unordered_map>
 #include <memory>
 
 enum class ShapeType {
@@ -48,6 +50,14 @@ class Entity {
         Uint8 GetColorG() const { return m_ColorG; }
         Uint8 GetColorB() const { return m_ColorB; }
 
+        void AddAnimation(const std::string& name, Animation anim);
+        void PlayAnimation(const std::string& name);
+        void StopAnimation();
+        bool HasAnimation() const { return m_CurrentAnim != nullptr; }
+        void SetFlipHorizontal(bool flip) { m_FlipH = flip; }
+        bool GetFlipHorizontal() const { return m_FlipH; }
+        void PauseAnimation(bool pause);
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -56,6 +66,7 @@ class Entity {
         float m_GravityScale = 0.0f;   // 0 by default (so existing entities don't fall)
         float m_Bounciness = 0.5f;  
         float m_Friction = 0.0f;
+        bool m_FlipH = false;
 
         Uint8 m_ColorR = 255;
         Uint8 m_ColorG = 255;
@@ -63,4 +74,7 @@ class Entity {
 
         std::shared_ptr<Texture> m_Texture;
         ShapeType m_Shape = ShapeType::Rectangle;
+        
+        std::unordered_map<std::string, Animation> m_Animations;
+        Animation* m_CurrentAnim = nullptr;
 };

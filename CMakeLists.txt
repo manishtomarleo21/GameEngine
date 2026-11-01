@@ -43,6 +43,7 @@ add_library(Engine
     src/Engine/UI/GameViewport.cpp
     src/Engine/Audio/Audio.cpp
     src/Engine/Particles/ParticleSystem.cpp
+    src/Engine/Animation/Animation.cpp
     # src/Engine/Renderer/Renderer.cpp
     ${IMGUI_SOURCES}
 )

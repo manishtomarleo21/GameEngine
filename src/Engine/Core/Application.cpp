@@ -9,6 +9,7 @@
 #include "Engine/Resources/TextureManager.h"
 #include "Engine/Camera/Camera.h"
 #include "Engine/Audio/Audio.h"
+#include "Engine/Animation/Animation.h"
 #include "imgui.h"
 #include <memory>
 
@@ -24,6 +25,7 @@ Application::Application(){
     auto& tm = TextureManager::Get();
     SDL_Renderer* renderer = m_Window->GetRenderer();
 
+   auto sheet = tm.Load(renderer, "assets/textures/players_sheet.jpg"); 
    auto playerTex = tm.Load(renderer, "assets/textures/player.png");
    if(playerTex) m_Scene->SetPlayerTexture(playerTex);
 
@@ -31,6 +33,31 @@ Application::Application(){
    if(enemyTex){
         m_Scene->AddEntity(500.0f, 200.0f, enemyTex);
    }
+
+ Entity* player = m_Scene->GetEntity(0);
+if (player && sheet) {
+    Animation run("run", sheet);
+
+    // Row 1 (top)
+    run.AddFrame(0,    0, 1344, 1792, 0.10f);
+    run.AddFrame(1344, 0, 1344, 1792, 0.10f);
+    run.AddFrame(2688, 0, 1344, 1792, 0.10f);
+    run.AddFrame(4032, 0, 1344, 1792, 0.10f);
+
+    // Row 2 (bottom)
+    run.AddFrame(0,    1792, 1344, 1792, 0.10f);
+    run.AddFrame(1344, 1792, 1344, 1792, 0.10f);
+    run.AddFrame(2688, 1792, 1344, 1792, 0.10f);
+    run.AddFrame(4032, 1792, 1344, 1792, 0.10f);
+
+    run.SetLoop(true);
+
+    player->AddAnimation("run", run);
+    player->PlayAnimation("run");
+
+    // Display size on screen (scaled down)
+    player->SetSize(96, 128);
+}
 
     Audio::Get().LoadSound("click", "assets/audio/click.wav");
     Audio::Get().LoadMusic("bgm", "assets/audio/bgm.mp3");

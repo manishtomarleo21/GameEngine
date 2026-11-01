@@ -7,6 +7,9 @@ Entity::Entity(float x, float y, float w, float h)
     }
 
 void Entity::Update(float deltaTime){
+    if (m_CurrentAnim) {
+        m_CurrentAnim->Update(deltaTime);
+    }
     // Apply gravity
     const float GRAVITY =  980.0f;
     m_VelY += GRAVITY * m_GravityScale * deltaTime;
@@ -20,7 +23,18 @@ void Entity::Renderer(SDL_Renderer* renderer){
     SDL_FRect dest = { m_X, m_Y, m_W, m_H };
 
     if(m_Texture && m_Texture->GetSDLTexture()){
-        SDL_RenderTexture(renderer, m_Texture->GetSDLTexture(), nullptr, &dest);
+        SDL_FRect src;
+        const SDL_FRect* srcPtr = nullptr;
+        if (m_CurrentAnim) {
+            const AnimationFrame* frame = m_CurrentAnim->GetCurrentFrame();
+            if (frame) {
+                src = { frame->u, frame->v, frame->w, frame->h };
+                srcPtr = &src;
+            }
+        }
+        SDL_FlipMode flip = m_FlipH ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+        SDL_RenderTextureRotated(renderer, m_Texture->GetSDLTexture(), srcPtr, &dest, 0.0, nullptr, flip);
+        return;
     }
     else{
         SDL_SetRenderDrawColor(renderer, m_ColorR, m_ColorG, m_ColorB, 255);
@@ -94,4 +108,35 @@ void Entity::SetFriction(float friction) {
 
 void Entity::SetShape(ShapeType shape) {
     m_Shape = shape;
+}
+
+void Entity::AddAnimation(const std::string& name, Animation anim) {
+    m_Animations[name] = std::move(anim);
+}
+
+void Entity::PlayAnimation(const std::string& name) {
+    auto it = m_Animations.find(name);
+    if (it == m_Animations.end()) return;
+
+    m_CurrentAnim = &it->second;
+    m_CurrentAnim->Reset();
+
+    // Use animation texture
+    if (m_CurrentAnim->GetTexture()) {
+        m_Texture = m_CurrentAnim->GetTexture();
+    }
+}
+
+void Entity::StopAnimation() {
+    m_CurrentAnim = nullptr;
+}
+
+void Entity::PauseAnimation(bool pause) {
+    if (m_CurrentAnim) {
+        m_CurrentAnim->SetPaused(pause);
+        if (pause) {
+            m_CurrentAnim->Reset();          // go to first frame
+            m_CurrentAnim->SetPaused(true);  // keep paused after reset
+        }
+    }
 }
