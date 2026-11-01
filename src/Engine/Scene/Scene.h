@@ -52,6 +52,13 @@ class Scene
         int PickEntityAt(float worldX, float worldY) const;
 
         ParticleSystem& GetParticles() { return m_Particles; }
+
+        bool  GetSnapToGrid() const { return m_SnapToGrid; }
+        void  SetSnapToGrid(bool v) { m_SnapToGrid = v; }
+        float GetGridSize() const { return m_GridSize; }
+        void  SetGridSize(float v) { m_GridSize = v; }
+
+        void RenderGrid(SDL_Renderer* renderer, float viewW, float viewH);
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
         Camera m_Camera;
@@ -61,5 +68,7 @@ class Scene
         float m_BgB = 0.2f;
         int m_SelectedEntity = -1;   // -1 means nothing selected
         ParticleSystem m_Particles{500};
+        bool  m_SnapToGrid = true;
+        float m_GridSize = 32.0f;
 };
 

@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <cmath>
 
 Scene::Scene() {
     // Create Player
@@ -315,4 +316,33 @@ int Scene::PickEntityAt(float worldX, float worldY) const {
         }
     }
     return -1;
+}
+
+void Scene::RenderGrid(SDL_Renderer* renderer, float viewW, float viewH) {
+    if (!m_SnapToGrid || m_GridSize <= 0.0f) return;
+
+    const float grid = m_GridSize;
+    const float camX = m_Camera.GetX();
+    const float camY = m_Camera.GetY();
+
+    // Start from first visible grid line
+    float startX = std::floor(camX / grid) * grid;
+    float startY = std::floor(camY / grid) * grid;
+
+    float endX = camX + viewW;
+    float endY = camY + viewH;
+
+    SDL_SetRenderDrawColor(renderer, 80, 80, 90, 100); // soft gray
+
+    // Vertical lines
+    for (float x = startX; x <= endX; x += grid) {
+        float screenX = x - camX;
+        SDL_RenderLine(renderer, screenX, 0.0f, screenX, viewH);
+    }
+
+    // Horizontal lines
+    for (float y = startY; y <= endY; y += grid) {
+        float screenY = y - camY;
+        SDL_RenderLine(renderer, 0.0f, screenY, viewW, screenY);
+    }
 }

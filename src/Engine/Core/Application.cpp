@@ -12,6 +12,7 @@
 #include "Engine/Animation/Animation.h"
 #include "imgui.h"
 #include <memory>
+#include <cmath>
 
 Application::Application(){
     Time::Init();
@@ -133,6 +134,12 @@ void Application::Run(){
 
             m_Scene->Renderer(m_Window->GetRenderer());
 
+            m_Scene->RenderGrid(
+                m_Window->GetRenderer(),
+                static_cast<float>(vpW),
+                static_cast<float>(vpH)
+            );
+
             m_GameViewport.End();
 
             // Show the texture inside ImGui
@@ -157,6 +164,11 @@ void Application::Run(){
         Input::EndFrame();
     }
     
+}
+
+static float Snap(float value, float grid) {
+    if (grid <= 0.0f) return value;
+    return std::round(value / grid) * grid;
 }
 
 void Application::HandleViewportInput(float canvasX, float canvasY, float canvasW, float canvasH) {
@@ -199,7 +211,15 @@ void Application::HandleViewportInput(float canvasX, float canvasY, float canvas
     if (m_Dragging && active) {
         Entity* selected = m_Scene->GetSelectedEntityPtr();
         if (selected) {
-            selected->SetPosition(worldX - m_DragOffsetX, worldY - m_DragOffsetY);
+            float newX = worldX - m_DragOffsetX;
+            float newY = worldY - m_DragOffsetY;
+
+            if (m_Scene->GetSnapToGrid()) {
+                newX = Snap(newX, m_Scene->GetGridSize());
+                newY = Snap(newY, m_Scene->GetGridSize());
+            }
+
+            selected->SetPosition(newX, newY);
         }
     }
 

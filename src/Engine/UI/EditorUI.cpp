@@ -201,6 +201,18 @@ void EditorUI::Draw(Scene& scene, float deltaTime) {
     }
 }
 
+    if (ImGui::CollapsingHeader("Grid", ImGuiTreeNodeFlags_DefaultOpen)) {
+        bool snap = scene.GetSnapToGrid();
+        if (ImGui::Checkbox("Snap to Grid", &snap)) {
+            scene.SetSnapToGrid(snap);
+        }
+
+        float grid = scene.GetGridSize();
+        if (ImGui::DragFloat("Grid Size", &grid, 1.0f, 8.0f, 128.0f)) {
+            scene.SetGridSize(grid);
+        }
+    }   
+
     // ========== UPCOMING FEATURES ==========
     if (ImGui::CollapsingHeader("Upcoming Features")) {
         ImGui::BeginDisabled();
