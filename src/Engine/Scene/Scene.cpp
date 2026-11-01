@@ -1,6 +1,7 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Physics/Collision.h"
 #include "Engine/Physics/Physics.h"
+#include "Engine/Audio/Audio.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -22,7 +23,7 @@ void Scene::Update(float deltaTime){
     for(auto& entity : m_Entities){
         entity->Update(deltaTime);
     }
-
+    m_Particles.Update(deltaTime);
     //Gravity Test
    Physics::ApplyFloorCollision(m_Entities, m_FloorY);
 
@@ -42,7 +43,7 @@ void Scene::Renderer(SDL_Renderer* renderer) {
         entity->Renderer(renderer);
         entity->SetPosition(originalX, originalY); // restore
     }
-
+    m_Particles.Render(renderer, m_Camera.GetX(), m_Camera.GetY());
     // Highlight selected entity
     Entity* selected = GetSelectedEntityPtr();
     if (selected) {
@@ -180,6 +181,17 @@ void Scene::CreateCircleEntity(float x, float y, float radius, float r, float g,
 void Scene::DeleteSelectedEntity() {
     if (m_SelectedEntity < 0 || m_SelectedEntity >= static_cast<int>(m_Entities.size())) {
         return;
+    }
+
+    Entity* e = m_Entities[m_SelectedEntity].get();
+    if (e) {
+        // Spawn destroy effect at entity center
+        float cx = e->GetX() + e->GetW() * 0.5f;
+        float cy = e->GetY() + e->GetH() * 0.5f;
+        m_Particles.EmitPreset(ParticlePreset::Explosion, cx, cy);
+
+        // Optional: play sound
+        Audio::Get().PlaySound("click");
     }
 
     m_Entities.erase(m_Entities.begin() + m_SelectedEntity);

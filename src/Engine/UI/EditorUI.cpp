@@ -1,5 +1,6 @@
 #include "Engine/UI/EditorUI.h"
 #include "Engine/Audio/Audio.h"
+#include "Engine/Particles/ParticleSystem.h"
 #include "imgui.h"
 
 void EditorUI::Draw(Scene& scene, float deltaTime) {
@@ -169,6 +170,24 @@ void EditorUI::Draw(Scene& scene, float deltaTime) {
             Audio::Get().StopMusic();
         }
     }
+
+        //Particls
+    if (ImGui::CollapsingHeader("Particles", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::Text("Spawn at (400, 300)");
+
+    if (ImGui::Button("Spark", ImVec2(-1, 0))) {
+        scene.GetParticles().EmitPreset(ParticlePreset::Spark, 400.0f, 300.0f);
+    }
+    if (ImGui::Button("Fire", ImVec2(-1, 0))) {
+        scene.GetParticles().EmitPreset(ParticlePreset::Fire, 400.0f, 300.0f);
+    }
+    if (ImGui::Button("Smoke", ImVec2(-1, 0))) {
+        scene.GetParticles().EmitPreset(ParticlePreset::Smoke, 400.0f, 300.0f);
+    }
+    if (ImGui::Button("Explosion", ImVec2(-1, 0))) {
+        scene.GetParticles().EmitPreset(ParticlePreset::Explosion, 400.0f, 300.0f);
+    }
+}
 
     //Save
     if (ImGui::CollapsingHeader("Scene", ImGuiTreeNodeFlags_DefaultOpen)) {

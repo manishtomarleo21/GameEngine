@@ -4,6 +4,7 @@
 #include "Engine/Entity/Player.h"
 #include "Engine/Renderer/Texture.h"
 #include "Engine/Camera/Camera.h"
+#include "Engine/Particles/ParticleSystem.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -49,6 +50,8 @@ class Scene
         bool LoadFromFile(const std::string& path);
 
         int PickEntityAt(float worldX, float worldY) const;
+
+        ParticleSystem& GetParticles() { return m_Particles; }
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
         Camera m_Camera;
@@ -57,5 +60,6 @@ class Scene
         float m_BgG = 0.1f;
         float m_BgB = 0.2f;
         int m_SelectedEntity = -1;   // -1 means nothing selected
+        ParticleSystem m_Particles{500};
 };
 
