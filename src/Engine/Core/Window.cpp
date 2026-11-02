@@ -70,5 +70,3 @@ void Window::SwapBuffers(){
 void Window::GetSize(int& width, int& height) const {
     SDL_GetWindowSize(m_Window, &width, &height);
 }
-
-

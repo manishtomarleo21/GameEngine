@@ -4,6 +4,25 @@
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 
+#if defined(__APPLE__)
+namespace {
+ImFont* LoadEditorFont() {
+    ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+        "/System/Library/Fonts/SFNS.ttf", 17.0f);
+    if (!font) {
+        font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+            "/System/Library/Fonts/Supplemental/Arial.ttf", 17.0f);
+    }
+
+    if (!font) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+            "Could not load a system UI font; using Dear ImGui's default font.");
+    }
+    return font;
+}
+}
+#endif
+
 ImGuiLayer::~ImGuiLayer(){
     ShutDown();
 }
@@ -17,6 +36,11 @@ bool ImGuiLayer::Init(SDL_Window* window, SDL_Renderer* renderer){
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = "imgui.ini";
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+#if defined(__APPLE__)
+    if (ImFont* editorFont = LoadEditorFont()) {
+        io.FontDefault = editorFont;
+    }
+#endif
 
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();

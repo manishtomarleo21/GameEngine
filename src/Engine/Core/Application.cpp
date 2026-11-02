@@ -108,10 +108,13 @@ void Application::Run(){
         m_ImGui->BeginFrame();
         m_EditorUI.Draw(*m_Scene, deltaTime);
 
-        // === Game Viewport Window ===
-        ImGui::SetNextWindowPos(ImVec2(20, 40), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(900, 600), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Game");
+        const EditorViewportBounds& viewportBounds = m_EditorUI.GetViewportBounds();
+        ImGui::SetNextWindowPos(ImVec2(viewportBounds.x, viewportBounds.y), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(viewportBounds.width, viewportBounds.height), ImGuiCond_Always);
+        ImGui::Begin("Game View", nullptr,
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoCollapse);
 
         ImVec2 canvasPos  = ImGui::GetCursorScreenPos(); // top-left of the game Window
         ImVec2 size = ImGui::GetContentRegionAvail();
