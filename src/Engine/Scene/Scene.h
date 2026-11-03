@@ -5,6 +5,7 @@
 #include "Engine/Renderer/Texture.h"
 #include "Engine/Camera/Camera.h"
 #include "Engine/Particles/ParticleSystem.h"
+#include "Engine/Tilemap/Tilemap.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -16,7 +17,7 @@ class Scene
         ~Scene() = default;
 
         void Update(float deltaTime);
-        void Renderer(SDL_Renderer* renderer);
+        void Renderer(SDL_Renderer* renderer, float viewW, float viewH);
 
         // Helper to keep player inside window
         void KeepPlayerInBounds(int windowWidth, int windowHeight);
@@ -59,6 +60,10 @@ class Scene
         void  SetGridSize(float v) { m_GridSize = v; }
 
         void RenderGrid(SDL_Renderer* renderer, float viewW, float viewH);
+
+        Tilemap& GetTilemap() { return m_Tilemap; }
+        int GetPaintTileId() const { return m_PaintTileId; }
+        void SetPaintTileId(int id) { m_PaintTileId = id; }
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
         Camera m_Camera;
@@ -70,5 +75,7 @@ class Scene
         ParticleSystem m_Particles{500};
         bool  m_SnapToGrid = true;
         float m_GridSize = 32.0f;
+        Tilemap m_Tilemap;
+        int m_PaintTileId = 1;
 };
 

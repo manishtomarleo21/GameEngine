@@ -26,6 +26,13 @@ Application::Application(){
     auto& tm = TextureManager::Get();
     SDL_Renderer* renderer = m_Window->GetRenderer();
 
+    auto tileset = TextureManager::Get().Load(
+        m_Window->GetRenderer(),
+        "assets/textures/tileset.png");
+    if (tileset)
+    {
+        m_Scene->GetTilemap().SetTileset(tileset, 8);
+    }
    auto sheet = tm.Load(renderer, "assets/textures/players_sheet.jpg"); 
    auto playerTex = tm.Load(renderer, "assets/textures/player.png");
    if(playerTex) m_Scene->SetPlayerTexture(playerTex);
@@ -135,7 +142,7 @@ void Application::Run(){
                 static_cast<Uint8>(b * 255), 255);
             SDL_RenderClear(m_Window->GetRenderer());
 
-            m_Scene->Renderer(m_Window->GetRenderer());
+            m_Scene->Renderer(m_Window->GetRenderer(), static_cast<float>(vpW), static_cast<float>(vpH));
 
             m_Scene->RenderGrid(
                 m_Window->GetRenderer(),
@@ -223,6 +230,22 @@ void Application::HandleViewportInput(float canvasX, float canvasY, float canvas
             }
 
             selected->SetPosition(newX, newY);
+        }
+    }
+
+    if (!m_Dragging && hovered) {
+        // Right mouse = paint
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+            m_Scene->GetTilemap().PaintTile(
+                worldX,
+                worldY,
+                m_Scene->GetPaintTileId()
+            );
+        }
+
+        // Middle mouse = erase
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
+            m_Scene->GetTilemap().PaintTile(worldX, worldY, 0);
         }
     }
 

@@ -1,6 +1,7 @@
 #include "Engine/UI/EditorUI.h"
 
 #include "Engine/Audio/Audio.h"
+#include "Engine/Tilemap/Tilemap.h"
 #include "Engine/Particles/ParticleSystem.h"
 #include "imgui.h"
 
@@ -163,8 +164,20 @@ void EditorUI::Draw(Scene& scene, float deltaTime) {
     ImGui::SetNextWindowSize(ImVec2(panelWidth, toolsHeight), ImGuiCond_Always);
     if (ImGui::Begin("Scene & Tools", nullptr, panelFlags)) {
         ImGui::Text("Performance");
-        ImGui::Text("FPS: %.1f", Time::GetFPS());
-        ImGui::Text("Frame: %.2f ms", deltaTime * 1000.0f);
+       // Smoothed display (updates ~4 times/sec)
+        static float displayFps = 0.0f;
+        static float displayMs  = 0.0f;
+        static float fpsTimer   = 0.0f;
+
+        fpsTimer += deltaTime;
+        if (fpsTimer >= 0.25f) {          // update every 0.25 seconds
+            displayFps = Time::GetFPS();
+            displayMs  = deltaTime * 1000.0f;
+            fpsTimer   = 0.0f;
+        }
+
+        ImGui::Text("FPS: %.1f", displayFps);
+        ImGui::Text("Frame: %.2f ms", displayMs);
 
         ImGui::Separator();
         ImGui::Text("Camera: %.0f, %.0f",
@@ -215,6 +228,78 @@ void EditorUI::Draw(Scene& scene, float deltaTime) {
         }
         if (ImGui::Button("Explosion", ImVec2(-1, 0))) {
             scene.GetParticles().EmitPreset(ParticlePreset::Explosion, 400.0f, 300.0f);
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Tilemap");
+
+        Tilemap& tilemap = scene.GetTilemap();
+        ImGui::Text("Map: %d x %d | Tile: %d px",
+            tilemap.GetWidth(), tilemap.GetHeight(), tilemap.GetTileSize());
+
+        int paintId = scene.GetPaintTileId();
+        ImGui::Text("Selected Tile ID: %d", paintId);
+
+        if (ImGui::Button("Clear Tilemap", ImVec2(-1, 0))) {
+            tilemap.Clear(0);
+        }
+
+        // ===== Tileset Palette =====
+        auto tileset = tilemap.GetTileset();
+        if (tileset && tileset->GetSDLTexture()) {
+            ImGui::Separator();
+            ImGui::Text("Tileset Palette");
+
+            const float tileSize = static_cast<float>(tilemap.GetTileSize());
+            const int tilesPerRow = tilemap.GetTilesPerRow();
+
+            // How big each tile appears in the UI
+            const float previewScale = 1.0f;
+            const float previewTile = tileSize * previewScale;
+
+            // Texture size in pixels
+            const float texW = tileset->GetWidth();
+            const float texH = tileset->GetHeight();
+
+            ImVec2 imageSize(texW * previewScale, texH * previewScale);
+
+            ImVec2 cursor = ImGui::GetCursorScreenPos();
+            ImGui::Image((ImTextureID)(intptr_t)tileset->GetSDLTexture(), imageSize);
+
+            // Click to pick tile
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+                ImVec2 mouse = ImGui::GetMousePos();
+                float localX = mouse.x - cursor.x;
+                float localY = mouse.y - cursor.y;
+
+                int col = static_cast<int>(localX / previewTile);
+                int row = static_cast<int>(localY / previewTile);
+
+                if (col >= 0 && row >= 0 && col < tilesPerRow) {
+                    int id = row * tilesPerRow + col + 1; // 0 = empty
+                    scene.SetPaintTileId(id);
+                }
+            }
+
+            // Optional: highlight selected tile
+            if (paintId > 0) {
+                int idx = paintId - 1;
+                int col = idx % tilesPerRow;
+                int row = idx / tilesPerRow;
+
+                ImDrawList* draw = ImGui::GetWindowDrawList();
+                ImVec2 minPos(
+                    cursor.x + col * previewTile,
+                    cursor.y + row * previewTile
+                );
+                ImVec2 maxPos(
+                    minPos.x + previewTile,
+                    minPos.y + previewTile
+                );
+                draw->AddRect(minPos, maxPos, IM_COL32(255, 220, 50, 255), 0.0f, 0, 2.0f);
+            }
+        } else {
+            ImGui::TextDisabled("No tileset loaded");
         }
     }
     ImGui::End();

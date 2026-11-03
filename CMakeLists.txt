@@ -44,7 +44,7 @@ add_library(Engine
     src/Engine/Audio/Audio.cpp
     src/Engine/Particles/ParticleSystem.cpp
     src/Engine/Animation/Animation.cpp
-    # src/Engine/Renderer/Renderer.cpp
+    src/Engine/Tilemap/Tilemap.cpp
     ${IMGUI_SOURCES}
 )
 

@@ -11,7 +11,7 @@ Scene::Scene() {
     // Create Player
     auto player = std::make_unique<Player>(100.0f, 200.0f, 80.0f, 80.0f);
     m_Entities.push_back(std::move(player));
-
+    m_Tilemap.Create(40, 30, 32); // 40x30 tiles, 32px each
     if (m_Entities.size() > 1)
     {
         m_Entities[1]->SetGravityScale(1.0f);
@@ -34,7 +34,8 @@ void Scene::Update(float deltaTime){
     }
 }
 
-void Scene::Renderer(SDL_Renderer* renderer) {
+void Scene::Renderer(SDL_Renderer* renderer, float viewW, float viewH) {
+    m_Tilemap.Render(renderer, m_Camera.GetX(), m_Camera.GetY(), viewW, viewH);
     for (auto& entity : m_Entities) {
         // Temporary offset by camera
         float originalX = entity->GetX();
