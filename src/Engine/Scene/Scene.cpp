@@ -256,6 +256,7 @@ bool Scene::SaveToFile(const std::string& path){
              << entity->GetBounciness()
              << "\n";
     }
+    m_Tilemap.Save(file);
     file.close();
     std::cout << "Scene saved: " << path << std::endl;
     return true;
@@ -298,6 +299,26 @@ bool Scene::LoadFromFile(const std::string& path) {
             entity->SetBounciness(bounciness);
 
             m_Entities.push_back(std::move(entity));
+        }
+        else if (type == "TILEMAP") {
+            int w, h, tileSize;
+            ss >> w >> h >> tileSize;
+
+            // next line should be TILES ...
+            std::string tilesLine;
+            if (std::getline(file, tilesLine)) {
+                std::istringstream tilesStream(tilesLine);
+                std::string tilesTag;
+                tilesStream >> tilesTag; // "TILES"
+
+                std::vector<int> tiles;
+                int id;
+                while (tilesStream >> id) {
+                    tiles.push_back(id);
+                }
+
+                m_Tilemap.LoadFromValues(w, h, tileSize, tiles);
+            }
         }
     }
 

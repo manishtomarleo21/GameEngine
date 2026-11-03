@@ -76,3 +76,19 @@ void Tilemap::Render(SDL_Renderer* renderer, float cameraX, float cameraY, float
         }
     }
 }
+
+void Tilemap::Save(std::ostream& out) const {
+    out << "TILEMAP " << m_Width << " " << m_Height << " " << m_TileSize << "\n";
+    out << "TILES";
+    for (int id : m_Tiles) {
+        out << " " << id;
+    }
+    out << "\n";
+}
+
+void Tilemap::LoadFromValues(int width, int height, int tileSize, const std::vector<int>& tiles) {
+    Create(width, height, tileSize);
+    if (tiles.size() == m_Tiles.size()) {
+        m_Tiles = tiles;
+    }
+}

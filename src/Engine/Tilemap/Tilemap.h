@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <iostream>
 
 class Tilemap {
 public:
@@ -28,6 +29,10 @@ public:
     // Paint helpers
     void PaintTile(float worldX, float worldY, int id);
     int  PickTileIdFromTileset(float localX, float localY) const;
+
+    void Save(std::ostream& out) const;
+    void Load(std::istream& in);
+    void LoadFromValues(int width, int height, int tileSize, const std::vector<int>& tiles);
 
 private:
     int m_Width = 0;
