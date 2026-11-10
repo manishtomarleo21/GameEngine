@@ -14,6 +14,12 @@ enum class EditorMode {
     Play,
     Paused
 };
+
+enum class EditorTool {
+    Select,
+    Pan,
+    Paint
+};
 class Application {
     public: 
         Application();
@@ -26,6 +32,9 @@ class Application {
         void Play();
         void Pause();
         void Stop();
+
+        EditorTool GetTool() const { return m_Tool; }
+        void SetTool(EditorTool tool) { m_Tool = tool; }
     
     private:
         std::unique_ptr<Window> m_Window;
@@ -35,6 +44,7 @@ class Application {
         EditorUI m_EditorUI;
         GameViewport m_GameViewport;
         EditorMode m_Mode = EditorMode::Edit;
+        EditorTool m_Tool = EditorTool::Select;
 
         void HandleViewportInput(float canvasX, float canvasY, float canvasW, float canvasH);
         bool  m_Dragging = false;
