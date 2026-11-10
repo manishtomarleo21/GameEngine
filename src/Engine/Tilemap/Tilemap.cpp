@@ -92,3 +92,105 @@ void Tilemap::LoadFromValues(int width, int height, int tileSize, const std::vec
         m_Tiles = tiles;
     }
 }
+
+void Tilemap::SetAllNonZeroSolid(bool enabled) {
+    m_AllNonZeroSolid = enabled;
+}
+
+void Tilemap::SetSolidTile(int tileId, bool solid) {
+    auto it = std::find(m_SolidTiles.begin(), m_SolidTiles.end(), tileId);
+    if (solid && it == m_SolidTiles.end()) {
+        m_SolidTiles.push_back(tileId);
+    } else if (!solid && it != m_SolidTiles.end()) {
+        m_SolidTiles.erase(it);
+    }
+}
+
+bool Tilemap::IsSolid(int tileId) const {
+    if (tileId <= 0) return false;
+    if (m_AllNonZeroSolid) return true;
+
+    return std::find(m_SolidTiles.begin(), m_SolidTiles.end(), tileId) != m_SolidTiles.end();
+}
+
+bool Tilemap::IsSolidAtWorld(float worldX, float worldY) const {
+    int tx = static_cast<int>(worldX) / m_TileSize;
+    int ty = static_cast<int>(worldY) / m_TileSize;
+    return IsSolid(GetTile(tx, ty));
+}
+
+bool Tilemap::ResolveCollision(float& x, float& y, float w, float h, float& velX, float& velY) const {
+    if (m_TileSize <= 0) return false;
+
+    bool hit = false;
+
+    int startTX = static_cast<int>(x) / m_TileSize;
+    int endTX   = static_cast<int>(x + w - 0.001f) / m_TileSize;
+    int startTY = static_cast<int>(y) / m_TileSize;
+    int endTY   = static_cast<int>(y + h - 0.001f) / m_TileSize;
+
+    // Resolve X first
+    for (int ty = startTY; ty <= endTY; ++ty) {
+        for (int tx = startTX; tx <= endTX; ++tx) {
+            if (!IsSolid(GetTile(tx, ty))) continue;
+
+            float tileLeft   = static_cast<float>(tx * m_TileSize);
+            float tileRight  = tileLeft + m_TileSize;
+            float tileTop    = static_cast<float>(ty * m_TileSize);
+            float tileBottom = tileTop + m_TileSize;
+
+            // overlap check
+            if (x + w <= tileLeft || x >= tileRight || y + h <= tileTop || y >= tileBottom) {
+                continue;
+            }
+
+            hit = true;
+
+            float overlapLeft  = (x + w) - tileLeft;
+            float overlapRight = tileRight - x;
+
+            if (overlapLeft < overlapRight) {
+                x = tileLeft - w;
+            } else {
+                x = tileRight;
+            }
+            velX = 0.0f;
+        }
+    }
+
+    // Recompute after X resolution
+    startTX = static_cast<int>(x) / m_TileSize;
+    endTX   = static_cast<int>(x + w - 0.001f) / m_TileSize;
+    startTY = static_cast<int>(y) / m_TileSize;
+    endTY   = static_cast<int>(y + h - 0.001f) / m_TileSize;
+
+    // Resolve Y
+    for (int ty = startTY; ty <= endTY; ++ty) {
+        for (int tx = startTX; tx <= endTX; ++tx) {
+            if (!IsSolid(GetTile(tx, ty))) continue;
+
+            float tileLeft   = static_cast<float>(tx * m_TileSize);
+            float tileRight  = tileLeft + m_TileSize;
+            float tileTop    = static_cast<float>(ty * m_TileSize);
+            float tileBottom = tileTop + m_TileSize;
+
+            if (x + w <= tileLeft || x >= tileRight || y + h <= tileTop || y >= tileBottom) {
+                continue;
+            }
+
+            hit = true;
+
+            float overlapTop    = (y + h) - tileTop;
+            float overlapBottom = tileBottom - y;
+
+            if (overlapTop < overlapBottom) {
+                y = tileTop - h;
+            } else {
+                y = tileBottom;
+            }
+            velY = 0.0f;
+        }
+    }
+
+    return hit;
+}

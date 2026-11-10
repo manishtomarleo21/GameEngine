@@ -31,15 +31,23 @@ public:
     int  PickTileIdFromTileset(float localX, float localY) const;
 
     void Save(std::ostream& out) const;
-    void Load(std::istream& in);
+    // void Load(std::istream& in);
     void LoadFromValues(int width, int height, int tileSize, const std::vector<int>& tiles);
+
+    bool IsSolid(int tileId) const;
+    bool IsSolidAtWorld(float worldX, float worldY) const;
+    bool ResolveCollision(float& x, float& y, float w, float h, float& velX, float& velY) const;
+
+    void SetSolidTile(int tileId, bool solid);
+    void SetAllNonZeroSolid(bool enabled);
 
 private:
     int m_Width = 0;
     int m_Height = 0;
     int m_TileSize = 32;
     int m_TilesPerRow = 1;
-
+    bool m_AllNonZeroSolid = true;
+    std::vector<int> m_SolidTiles;
     std::vector<int> m_Tiles; // row-major
     std::shared_ptr<Texture> m_Tileset;
 };
