@@ -1,5 +1,5 @@
 #include "Engine/UI/EditorUI.h"
-
+#include "Engine/Core/Application.h"
 #include "Engine/Audio/Audio.h"
 #include "Engine/Tilemap/Tilemap.h"
 #include "Engine/Particles/ParticleSystem.h"
@@ -18,7 +18,7 @@ constexpr float kMinimumPanelWidth = 170.0f;
 constexpr float kMaximumPanelWidth = 280.0f;
 }
 
-void EditorUI::Draw(Scene& scene, float deltaTime) {
+void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Save Scene")) {
@@ -56,12 +56,70 @@ void EditorUI::Draw(Scene& scene, float deltaTime) {
     const float bottomY = kTopOffset + panelHeight * 0.46f + kPanelGap;
     const float bottomHeight = std::max(0.0f, displaySize.y - bottomY - kBottomMargin);
 
+    const float toolbarH = 34.0f;
     m_ViewportBounds = {
         kOuterMargin + panelWidth + kPanelGap,
-        kTopOffset,
+        kTopOffset + toolbarH,
         viewportWidth,
-        panelHeight
+        std::max(0.0f, panelHeight - toolbarH)
     };
+    // ===== Toolbar: Play / Pause / Stop =====
+    ImGui::SetNextWindowPos(ImVec2(m_ViewportBounds.x, kTopOffset),
+    ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(m_ViewportBounds.width, toolbarH),
+    ImGuiCond_Always);
+
+    ImGuiWindowFlags toolbarFlags =
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoScrollWithMouse |
+        ImGuiWindowFlags_NoSavedSettings;
+
+    if (ImGui::Begin("##Toolbar", nullptr, toolbarFlags)) {
+        EditorMode mode = app.GetMode();
+
+        // Play
+        if (ImGui::Button("▶ Play")) {
+            app.Play();
+        }
+        ImGui::SameLine();
+
+        // Pause
+        if (ImGui::Button(mode == EditorMode::Paused ? "▶ Resume" : "⏸ Pause")) {
+            app.Pause();
+        }
+        ImGui::SameLine();
+
+        // Stop
+        if (ImGui::Button("⏹ Stop")) {
+            app.Stop();
+        }
+        ImGui::SameLine(); 
+          static int activeTool = 0; // 0 select, 1 pan, 2 paint
+        if (ImGui::Button("↖")) activeTool = 0; ImGui::SameLine(); // select
+        // if (ImGui::Button("✋")) activeTool = 1; ImGui::SameLine(); // pan
+        if (ImGui::Button("▦")) activeTool = 2; ImGui::SameLine(); // tile paint
+        if (ImGui::Button("＋")) { /* create later */ } ImGui::SameLine();
+        if (ImGui::Button("↺")) { scene.LoadFromFile("assets/scenes/scene1.txt"); } ImGui::SameLine();
+        if (ImGui::Button("⛶")) { /* fullscreen later */ } ImGui::SameLine();
+        if (ImGui::Button("🌐")) { /* world/grid later */ } ImGui::SameLine();
+        // if (ImGui::Button("📍")) { /* focus selected later */ } ImGui::SameLine();
+        if (ImGui::Button("⚙")) { /* settings later */ }
+
+        ImGui::SameLine();
+        ImGui::TextDisabled("  |  ");
+        ImGui::SameLine();
+
+        if (mode == EditorMode::Edit) {
+            ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "Mode: Edit");
+        } else if (mode == EditorMode::Play) {
+            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.5f, 1.0f), "Mode: Play");
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Mode: Paused");
+        }
+
+    }
+    ImGui::End();
 
     ImGuiWindowFlags panelFlags = ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoResize |

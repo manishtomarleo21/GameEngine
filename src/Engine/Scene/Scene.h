@@ -64,6 +64,11 @@ class Scene
         Tilemap& GetTilemap() { return m_Tilemap; }
         int GetPaintTileId() const { return m_PaintTileId; }
         void SetPaintTileId(int id) { m_PaintTileId = id; }
+
+        void SetPlayerStart(float x, float y);
+        void ResetPlayerToStart();
+        void ClearWin();
+        bool IsWin() const { return m_Win; }
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
         Camera m_Camera;
@@ -77,5 +82,8 @@ class Scene
         float m_GridSize = 32.0f;
         Tilemap m_Tilemap;
         int m_PaintTileId = 1;
+        float m_PlayerStartX = 100.0f;
+        float m_PlayerStartY = 100.0f;
+        bool  m_Win = false;
 };
 

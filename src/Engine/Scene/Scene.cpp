@@ -381,3 +381,20 @@ void Scene::RenderGrid(SDL_Renderer* renderer, float viewW, float viewH) {
         SDL_RenderLine(renderer, 0.0f, screenY, viewW, screenY);
     }
 }
+
+void Scene::SetPlayerStart(float x, float y) {
+    m_PlayerStartX = x;
+    m_PlayerStartY = y;
+}
+
+void Scene::ResetPlayerToStart() {
+    if (m_Entities.empty()) return;
+
+    m_Entities[0]->SetPosition(m_PlayerStartX, m_PlayerStartY);
+    m_Entities[0]->SetVelocity(0.0f, 0.0f);
+    m_Win = false;
+}
+
+void Scene::ClearWin() {
+    m_Win = false;
+}

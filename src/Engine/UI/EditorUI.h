@@ -3,6 +3,8 @@
 #include "Engine/Scene/Scene.h"
 #include "Engine/Core/Time.h"
 
+class Application;
+
 struct EditorViewportBounds {
     float x = 0.0f;
     float y = 0.0f;
@@ -12,7 +14,7 @@ struct EditorViewportBounds {
 
 class EditorUI {
 public:
-    void Draw(Scene& scene, float deltaTime);
+    void Draw(Scene& scene, float deltaTime, Application& app);
     const EditorViewportBounds& GetViewportBounds() const { return m_ViewportBounds; }
 
 private:

@@ -102,18 +102,19 @@ void Application::Run(){
 
         Input::Update();
 
-        m_Scene->Update(deltaTime);
+        if (m_Mode == EditorMode::Play) {
+            m_Scene->Update(deltaTime);
 
-        int windowW, windowH;
-        m_Window->GetSize(windowW, windowH);
-        m_Scene->SetFloorY(static_cast<float>(windowH));
-        m_Scene->KeepPlayerInBounds(windowW, windowH);
+            int windowW, windowH;
+            m_Window->GetSize(windowW, windowH);
+            m_Scene->SetFloorY(static_cast<float>(windowH));
+            m_Scene->KeepPlayerInBounds(windowW, windowH);
 
-        // Camera follows player
-        m_Scene->UpdateCamera(static_cast<float>(windowW), static_cast<float>(windowH), deltaTime);
-
+            // Camera follows player
+            m_Scene->UpdateCamera(static_cast<float>(windowW), static_cast<float>(windowH), deltaTime);
+        }    
         m_ImGui->BeginFrame();
-        m_EditorUI.Draw(*m_Scene, deltaTime);
+        m_EditorUI.Draw(*m_Scene, deltaTime, *this);
 
         const EditorViewportBounds& viewportBounds = m_EditorUI.GetViewportBounds();
         ImGui::SetNextWindowPos(ImVec2(viewportBounds.x, viewportBounds.y), ImGuiCond_Always);
@@ -253,4 +254,32 @@ void Application::HandleViewportInput(float canvasX, float canvasY, float canvas
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
         m_Dragging = false;
     }
+}
+
+void Application::SetMode(EditorMode mode){
+    m_Mode = mode;
+}
+
+void Application::Play() {
+    if (m_Mode == EditorMode::Edit) {
+        // starting play from edit: reset player to start
+        m_Scene->ResetPlayerToStart();
+        m_Scene->ClearWin();
+    }
+    m_Mode = EditorMode::Play;
+}
+
+void Application::Pause() {
+    if (m_Mode == EditorMode::Play) {
+        m_Mode = EditorMode::Paused;
+    } else if (m_Mode == EditorMode::Paused) {
+        m_Mode = EditorMode::Play;
+    }
+}
+
+void Application::Stop() {
+    m_Mode = EditorMode::Edit;
+    m_Scene->ResetPlayerToStart();
+    m_Scene->ClearWin();
+    m_Dragging = false;
 }

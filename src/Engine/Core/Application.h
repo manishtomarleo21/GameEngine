@@ -9,12 +9,23 @@
 #include <memory>
 #include <vector>
 
+enum class EditorMode {
+    Edit,
+    Play,
+    Paused
+};
 class Application {
     public: 
         Application();
         ~Application();
         
         void Run();
+
+        EditorMode GetMode() const { return m_Mode; }
+        void SetMode(EditorMode mode);
+        void Play();
+        void Pause();
+        void Stop();
     
     private:
         std::unique_ptr<Window> m_Window;
@@ -23,6 +34,7 @@ class Application {
         bool m_Running = true;
         EditorUI m_EditorUI;
         GameViewport m_GameViewport;
+        EditorMode m_Mode = EditorMode::Edit;
 
         void HandleViewportInput(float canvasX, float canvasY, float canvasW, float canvasH);
         bool  m_Dragging = false;
