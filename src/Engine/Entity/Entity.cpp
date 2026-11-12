@@ -33,7 +33,14 @@ void Entity::Renderer(SDL_Renderer* renderer){
                 srcPtr = &src;
             }
         }
-        SDL_FlipMode flip = m_FlipH ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+        SDL_FlipMode flip = SDL_FLIP_NONE;
+        if (m_FlipH && m_FlipV) {
+            flip = static_cast<SDL_FlipMode>(SDL_FLIP_HORIZONTAL | SDL_FLIP_VERTICAL);
+        } else if (m_FlipH) {
+            flip = SDL_FLIP_HORIZONTAL;
+        } else if (m_FlipV) {
+            flip = SDL_FLIP_VERTICAL;
+        }
         SDL_FPoint center = { m_W * 0.5f, m_H * 0.5f };
         SDL_RenderTextureRotated(renderer, m_Texture->GetSDLTexture(), srcPtr, &dest, m_Rotation, &center, flip);
         return;

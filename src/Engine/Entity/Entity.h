@@ -62,6 +62,8 @@ class Entity {
         float GetRotation() const { return m_Rotation; }
         void SetVisible(bool visible) { m_Visible = visible; }
         bool IsVisible() const { return m_Visible; }
+        void SetFlipVertical(bool flip) { m_FlipV = flip; }
+        bool GetFlipVertical() const { return m_FlipV; }
 
     private:
         float m_X, m_Y;
@@ -74,6 +76,7 @@ class Entity {
         float m_Rotation = 0.0f; //degree
         bool m_FlipH = false;
         bool m_Visible = true;
+        bool m_FlipV = false;
 
         Uint8 m_ColorR = 255;
         Uint8 m_ColorG = 255;

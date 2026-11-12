@@ -331,6 +331,10 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
                         if (ImGui::Checkbox("Flip X", &flipH)) {
                             selected->SetFlipHorizontal(flipH);
                         }
+                        bool flipV = selected->GetFlipVertical();
+                        if (ImGui::Checkbox("Flip Y", &flipV)) {
+                            selected->SetFlipVertical(flipV);
+                        }
                         ImGui::TextDisabled("Texture and animation assignment: code only");
                     }
 
