@@ -58,6 +58,11 @@ class Entity {
         bool GetFlipHorizontal() const { return m_FlipH; }
         void PauseAnimation(bool pause);
 
+        void SetRotation(float degrees);
+        float GetRotation() const { return m_Rotation; }
+        void SetVisible(bool visible) { m_Visible = visible; }
+        bool IsVisible() const { return m_Visible; }
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -66,7 +71,9 @@ class Entity {
         float m_GravityScale = 0.0f;   // 0 by default (so existing entities don't fall)
         float m_Bounciness = 0.5f;  
         float m_Friction = 0.0f;
+        float m_Rotation = 0.0f; //degree
         bool m_FlipH = false;
+        bool m_Visible = true;
 
         Uint8 m_ColorR = 255;
         Uint8 m_ColorG = 255;

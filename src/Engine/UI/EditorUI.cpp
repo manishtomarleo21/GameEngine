@@ -247,13 +247,18 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
                         }
                         drawAxis("Position", 2, positionZ, 2, true, false);
 
-                        float rotationX = 0.0f;
-                        float rotationY = 0.0f;
-                        float rotationZ = 0.0f;
+                        float rotation = selected->GetRotation();
                         startAxisRow("Rotation");
-                        drawAxis("Rotation", 0, rotationX, 0, true, true);
-                        drawAxis("Rotation", 1, rotationY, 1, true, false);
-                        drawAxis("Rotation", 2, rotationZ, 2, true, false);
+
+                        // X/Y disabled placeholders, Z = actual 2D rotation
+                        float rotX = 0.0f;
+                        float rotY = 0.0f;
+                        drawAxis("Rotation", 0, rotX, 0, true, true);
+                        drawAxis("Rotation", 1, rotY, 1, true, false);
+
+                        if (drawAxis("Rotation", 2, rotation, 2, false, false)) {
+                            selected->SetRotation(rotation);
+                        }
 
                         float scaleX = selected->GetW();
                         float scaleY = selected->GetH();
@@ -268,15 +273,15 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
                         drawAxis("Scale", 2, scaleZ, 2, true, false);
 
                         ImGui::TextDisabled("X/Y scale maps to 2D size in pixels.");
-                        bool visible = true;
-                        ImGui::BeginDisabled();
-                        ImGui::Checkbox("Visible", &visible);
-                        ImGui::SameLine();
-                        ImGui::TextDisabled("(not implemented)");
+                        bool visible = selected->IsVisible();
+                        if (ImGui::Checkbox("Visible", &visible)) {
+                            selected->SetVisible(visible);
+                        }
+                       ImGui::BeginDisabled();
                         bool billboard = false;
                         ImGui::Checkbox("Billboard", &billboard);
                         ImGui::EndDisabled();
-                        ImGui::TextDisabled("Rotation, Z, visibility and billboard are placeholders.");
+                        ImGui::TextDisabled("Billboard is for 3D cameras (not used in 2D).");
                     }
 
                     if (ImGui::CollapsingHeader("Mesh Component", ImGuiTreeNodeFlags_None)) {

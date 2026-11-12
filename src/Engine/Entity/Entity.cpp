@@ -20,6 +20,7 @@ void Entity::Update(float deltaTime){
 }
 
 void Entity::Renderer(SDL_Renderer* renderer){
+    if (!m_Visible) return;
     SDL_FRect dest = { m_X, m_Y, m_W, m_H };
 
     if(m_Texture && m_Texture->GetSDLTexture()){
@@ -33,7 +34,8 @@ void Entity::Renderer(SDL_Renderer* renderer){
             }
         }
         SDL_FlipMode flip = m_FlipH ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-        SDL_RenderTextureRotated(renderer, m_Texture->GetSDLTexture(), srcPtr, &dest, 0.0, nullptr, flip);
+        SDL_FPoint center = { m_W * 0.5f, m_H * 0.5f };
+        SDL_RenderTextureRotated(renderer, m_Texture->GetSDLTexture(), srcPtr, &dest, m_Rotation, &center, flip);
         return;
     }
     else{
@@ -139,4 +141,8 @@ void Entity::PauseAnimation(bool pause) {
             m_CurrentAnim->SetPaused(true);  // keep paused after reset
         }
     }
+}
+
+void Entity::SetRotation(float degrees) {
+    m_Rotation = degrees;
 }
