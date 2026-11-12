@@ -41,7 +41,7 @@ void Entity::Renderer(SDL_Renderer* renderer){
         } else if (m_FlipV) {
             flip = SDL_FLIP_VERTICAL;
         }
-        SDL_FPoint center = { m_W * 0.5f, m_H * 0.5f };
+        SDL_FPoint center = { m_W * m_PivotX, m_H * m_PivotY };
         SDL_RenderTextureRotated(renderer, m_Texture->GetSDLTexture(), srcPtr, &dest, m_Rotation, &center, flip);
         return;
     }
@@ -152,4 +152,30 @@ void Entity::PauseAnimation(bool pause) {
 
 void Entity::SetRotation(float degrees) {
     m_Rotation = degrees;
+}
+
+void Entity::SetPivot(float x, float y) {
+    m_PivotX = std::clamp(x, 0.0f, 1.0f);
+    m_PivotY = std::clamp(y, 0.0f, 1.0f);
+}
+
+int Entity::GetAnimationFrameCount() const {
+    if (!m_CurrentAnim) return 0;
+    return m_CurrentAnim->GetFrameCount();
+}
+
+int Entity::GetCurrentFrameIndex() const {
+    if (!m_CurrentAnim) return 0;
+    return m_CurrentAnim->GetCurrentFrameIndex();
+}
+
+void Entity::SetCurrentFrameIndex(int index) {
+    if (!m_CurrentAnim) return;
+    m_CurrentAnim->SetCurrentFrameIndex(index);
+}
+
+bool Entity::AddAnimationFrame(float u, float v, float w, float h, float duration) {
+    if (!m_CurrentAnim) return false;
+    m_CurrentAnim->AddFrame(u, v, w, h, duration);
+    return true;
 }

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <string>
 
 namespace {
 constexpr float kPanelGap = 8.0f;
@@ -327,6 +328,21 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
                                 static_cast<Uint8>(color[2] * 255.0f));
                         }
 
+                        ImGui::Separator();
+                        ImGui::Text("Pivot");
+
+                        float pivot[2] = { selected->GetPivotX(), selected->GetPivotY() };
+                        if (ImGui::DragFloat2("Pivot", pivot, 0.01f, 0.0f, 1.0f)) {
+                            selected->SetPivot(pivot[0], pivot[1]);
+                        }
+
+                        // Quick presets
+                        if (ImGui::Button("Top-Left"))    selected->SetPivot(0.0f, 0.0f);
+                        ImGui::SameLine();
+                        if (ImGui::Button("Center"))      selected->SetPivot(0.5f, 0.5f);
+                        ImGui::SameLine();
+                        if (ImGui::Button("Bottom"))      selected->SetPivot(0.5f, 1.0f);
+
                         bool flipH = selected->GetFlipHorizontal();
                         if (ImGui::Checkbox("Flip X", &flipH)) {
                             selected->SetFlipHorizontal(flipH);
@@ -335,6 +351,93 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
                         if (ImGui::Checkbox("Flip Y", &flipV)) {
                             selected->SetFlipVertical(flipV);
                         }
+
+                        ImGui::Separator();
+                        ImGui::Text("Sprite Frames");
+
+                        Animation* anim = selected->GetCurrentAnimation();
+                        if (!anim) {
+                            ImGui::TextDisabled("No animation on this entity.");
+                            ImGui::TextDisabled("Assign/play an animation from code first.");
+                        } else {
+                            int frameCount = selected->GetAnimationFrameCount();
+                            int current = selected->GetCurrentFrameIndex();
+
+                            // Frames dropdown
+                            if (frameCount > 0) {
+                                // Build labels: Frame 0, Frame 1, ...
+                                if (ImGui::BeginCombo("Frames", ("Frame " + std::to_string(current)).c_str())) {
+                                    for (int i = 0; i < frameCount; ++i) {
+                                        bool isSelected = (i == current);
+                                        std::string label = "Frame " + std::to_string(i);
+                                        if (ImGui::Selectable(label.c_str(), isSelected)) {
+                                            selected->SetCurrentFrameIndex(i);
+                                            selected->PauseAnimation(true); // hold on chosen frame
+                                        }
+                                        if (isSelected) ImGui::SetItemDefaultFocus();
+                                    }
+                                    ImGui::EndCombo();
+                                }
+                            } else {
+                                ImGui::TextDisabled("No frames yet");
+                            }
+
+                            ImGui::Spacing();
+
+                            // + Add Frame
+                            static float newU = 0.0f, newV = 0.0f, newW = 32.0f, newH = 32.0f, newDur = 0.12f;
+                            if (ImGui::TreeNode("Add Frame Settings")) {
+                                ImGui::DragFloat("U", &newU, 1.0f, 0.0f, 10000.0f);
+                                ImGui::DragFloat("V", &newV, 1.0f, 0.0f, 10000.0f);
+                                ImGui::DragFloat("W", &newW, 1.0f, 1.0f, 10000.0f);
+                                ImGui::DragFloat("H", &newH, 1.0f, 1.0f, 10000.0f);
+                                ImGui::DragFloat("Duration", &newDur, 0.01f, 0.01f, 2.0f);
+                                ImGui::TreePop();
+                            }
+
+                            if (ImGui::Button("+ Add Frame", ImVec2(-1, 0))) {
+                                selected->AddAnimationFrame(newU, newV, newW, newH, newDur);
+                            }
+
+                            // Simple Slicer Tool
+                            if (ImGui::Button("Slicer Tool", ImVec2(-1, 0))) {
+                                ImGui::OpenPopup("SlicerToolPopup");
+                            }
+
+                            if (ImGui::BeginPopupModal("SlicerToolPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+                                static int sliceCols = 4;
+                                static int sliceRows = 2;
+                                static float sliceW = 1344.0f;
+                                static float sliceH = 1792.0f;
+                                static float sliceDur = 0.10f;
+
+                                ImGui::Text("Auto-slice a grid into frames");
+                                ImGui::DragInt("Columns", &sliceCols, 1, 1, 64);
+                                ImGui::DragInt("Rows", &sliceRows, 1, 1, 64);
+                                ImGui::DragFloat("Frame W", &sliceW, 1.0f, 1.0f, 10000.0f);
+                                ImGui::DragFloat("Frame H", &sliceH, 1.0f, 1.0f, 10000.0f);
+                                ImGui::DragFloat("Duration", &sliceDur, 0.01f, 0.01f, 2.0f);
+
+                                if (ImGui::Button("Generate Frames", ImVec2(160, 0))) {
+                                    for (int row = 0; row < sliceRows; ++row) {
+                                        for (int col = 0; col < sliceCols; ++col) {
+                                            float u = col * sliceW;
+                                            float v = row * sliceH;
+                                            selected->AddAnimationFrame(u, v, sliceW, sliceH, sliceDur);
+                                        }
+                                    }
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                ImGui::SameLine();
+                                if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                ImGui::EndPopup();
+                            }
+
+                            ImGui::TextDisabled("Frames: %d", frameCount);
+                        }
+
                         ImGui::TextDisabled("Texture and animation assignment: code only");
                     }
 

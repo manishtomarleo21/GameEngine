@@ -65,6 +65,16 @@ class Entity {
         void SetFlipVertical(bool flip) { m_FlipV = flip; }
         bool GetFlipVertical() const { return m_FlipV; }
 
+        void SetPivot(float x, float y);   // 0..1 range
+        float GetPivotX() const { return m_PivotX; }
+        float GetPivotY() const { return m_PivotY; }
+
+        Animation* GetCurrentAnimation() { return m_CurrentAnim; }
+        int GetAnimationFrameCount() const;
+        int GetCurrentFrameIndex() const;
+        void SetCurrentFrameIndex(int index);
+        bool AddAnimationFrame(float u, float v, float w, float h, float duration);
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -74,6 +84,8 @@ class Entity {
         float m_Bounciness = 0.5f;  
         float m_Friction = 0.0f;
         float m_Rotation = 0.0f; //degree
+        float m_PivotX = 0.5f;  // center by default
+        float m_PivotY = 0.5f;
         bool m_FlipH = false;
         bool m_Visible = true;
         bool m_FlipV = false;

@@ -39,3 +39,18 @@ const AnimationFrame* Animation::GetCurrentFrame() const {
     if (m_Frames.empty()) return nullptr;
     return &m_Frames[m_CurrentFrame];
 }
+
+void Animation::SetCurrentFrameIndex(int index) {
+    if (m_Frames.empty()) return;
+    if (index < 0) index = 0;
+    if (index >= static_cast<int>(m_Frames.size())) {
+        index = static_cast<int>(m_Frames.size()) - 1;
+    }
+    m_CurrentFrame = index;
+    m_Timer = 0.0f;
+}
+
+const AnimationFrame* Animation::GetFrame(int index) const {
+    if (index < 0 || index >= static_cast<int>(m_Frames.size())) return nullptr;
+    return &m_Frames[index];
+}

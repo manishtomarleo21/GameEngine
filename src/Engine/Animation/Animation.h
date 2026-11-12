@@ -31,6 +31,11 @@ class Animation
         const std::string& GetName() const { return m_Name; }
         bool IsFinished() const { return m_Finished; }
 
+        int GetFrameCount() const { return static_cast<int>(m_Frames.size()); }
+        int GetCurrentFrameIndex() const { return m_CurrentFrame; }
+        void SetCurrentFrameIndex(int index);
+        const AnimationFrame* GetFrame(int index) const;
+
     private:
         std::string m_Name;
         std::shared_ptr<Texture> m_Texture;
