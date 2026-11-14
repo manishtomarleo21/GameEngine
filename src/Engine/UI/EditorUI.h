@@ -14,7 +14,7 @@ struct EditorViewportBounds {
 
 class EditorUI {
 public:
-    void Draw(Scene& scene, float deltaTime, Application& app);
+    void Draw(Scene& scene, float deltaTime, Application& app, SDL_Renderer* renderer);
     const EditorViewportBounds& GetViewportBounds() const { return m_ViewportBounds; }
 
 private:

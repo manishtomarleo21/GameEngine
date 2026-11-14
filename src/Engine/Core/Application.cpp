@@ -114,7 +114,7 @@ void Application::Run(){
             m_Scene->UpdateCamera(static_cast<float>(windowW), static_cast<float>(windowH), deltaTime);
         }    
         m_ImGui->BeginFrame();
-        m_EditorUI.Draw(*m_Scene, deltaTime, *this);
+        m_EditorUI.Draw(*m_Scene, deltaTime, *this, m_Window->GetRenderer());
 
         const EditorViewportBounds& viewportBounds = m_EditorUI.GetViewportBounds();
         ImGui::SetNextWindowPos(ImVec2(viewportBounds.x, viewportBounds.y), ImGuiCond_Always);

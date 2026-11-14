@@ -30,6 +30,7 @@ class Entity {
         void SetVelocity(float vx, float vy);
 
         void SetTexture(std::shared_ptr<Texture> texture);
+        std::shared_ptr<Texture> GetTexture() const { return m_Texture; }
 
         void AddVelocity(float vx, float vy);
         void SetGravityScale(float scale);     // 1.0 = normal gravity, 0.0 = no gravity

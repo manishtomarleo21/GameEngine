@@ -3,11 +3,15 @@
 #include "Engine/Audio/Audio.h"
 #include "Engine/Tilemap/Tilemap.h"
 #include "Engine/Particles/ParticleSystem.h"
+#include "Engine/Resources/TextureManager.h"
 #include "imgui.h"
 
+#include <filesystem>
+#include <vector>
 #include <algorithm>
 #include <cstdio>
 #include <string>
+#include <cctype>
 
 namespace {
 constexpr float kPanelGap = 8.0f;
@@ -18,8 +22,44 @@ constexpr float kMinimumViewportWidth = 320.0f;
 constexpr float kMinimumPanelWidth = 170.0f;
 constexpr float kMaximumPanelWidth = 280.0f;
 }
+namespace fs = std::filesystem;
 
-void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
+static std::vector<std::string> ListFiles(const std::string& dir, const std::vector<std::string>& exts) {
+    std::vector<std::string> result;
+
+    std::error_code ec;
+    if (!fs::exists(dir, ec)) return result;
+
+    for (const auto& entry : fs::directory_iterator(dir, ec)) {
+        if (ec) break;
+        if (!entry.is_regular_file()) continue;
+
+        std::string filename = entry.path().filename().string();
+        std::string ext = entry.path().extension().string();
+
+        // lowercase extension check
+        for (char& c : ext) c = static_cast<char>(tolower(c));
+
+        for (const auto& allowed : exts) {
+            if (ext == allowed) {
+                result.push_back(filename);
+                break;
+            }
+        }
+    }
+
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+static std::string ResolveAssetDir(const std::string& relativeDir) {
+    if (fs::exists(relativeDir)) return relativeDir;
+    std::string alt = std::string("../") + relativeDir;
+    if (fs::exists(alt)) return alt;
+    return relativeDir;
+}
+
+void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Renderer* renderer) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Save Scene")) {
@@ -156,28 +196,100 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
             if (ImGui::Selectable(label, scene.GetSelectedEntity() == static_cast<int>(i))) {
                 scene.SetSelectedEntity(static_cast<int>(i));
             }
+
+            // Drop texture onto this entity
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
+                    const char* filename = static_cast<const char*>(payload->Data);
+
+                    std::string texDir = ResolveAssetDir("assets/textures");
+                    std::string path = texDir + "/" + filename;
+
+                    auto tex = TextureManager::Get().Load(renderer, path);
+                    if (tex) {
+                        entity->StopAnimation();
+                        entity->SetTexture(tex);
+                        entity->SetSize(64, 64);
+                        scene.SetSelectedEntity(static_cast<int>(i));
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
         }
+
+        if (ImGui::Button("+ Rect")) {
+        scene.CreateRectangleEntity(300, 200, 80, 80, 0.9f, 0.3f, 0.3f);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("+ Circle")) {
+            scene.CreateCircleEntity(300, 200, 40, 0.3f, 0.8f, 0.9f);
+        }
+
+    ImGui::Separator();
+    ImGui::TextDisabled("%zu OBJECTS", scene.GetEntityCount());
     }
     ImGui::End();
 
     ImGui::SetNextWindowPos(ImVec2(kOuterMargin, bottomY), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(panelWidth, bottomHeight), ImGuiCond_Always);
-    if (ImGui::Begin("Create", nullptr, panelFlags)) {
-        static float newPos[2] = {300.0f, 200.0f};
-        static float newSize[2] = {80.0f, 80.0f};
-        static float newColor[3] = {0.9f, 0.3f, 0.3f};
 
-        ImGui::DragFloat2("Position", newPos, 1.0f);
-        ImGui::DragFloat2("Size", newSize, 1.0f, 1.0f, 2000.0f);
-        ImGui::ColorEdit3("Color", newColor);
+    if (ImGui::Begin("Resources", nullptr, panelFlags)) {
+        ImGui::TextDisabled("Project Assets");
+        ImGui::Separator();
 
-        if (ImGui::Button("Rectangle", ImVec2(-1, 0))) {
-            scene.CreateRectangleEntity(newPos[0], newPos[1], newSize[0], newSize[1],
-                newColor[0], newColor[1], newColor[2]);
+        Entity* selected = scene.GetSelectedEntityPtr();
+
+        // ---- textures ----
+        std::string texDir = ResolveAssetDir("assets/textures");
+        if (ImGui::TreeNode("textures")) {
+            auto files = ListFiles(texDir, {".png", ".jpg", ".jpeg", ".bmp"});
+
+            if (files.empty()) {
+                ImGui::TextDisabled("No textures found");
+            }
+
+            for (const auto& name : files) {
+                if (ImGui::Selectable(name.c_str())) {
+                    if (selected) {
+                        std::string path = texDir + "/" + name;
+                        auto tex = TextureManager::Get().Load(renderer, path);
+                        if (tex) {
+                            selected->StopAnimation();
+                            selected->SetTexture(tex);
+                            selected->SetSize(64, 64); // safe display size
+                        }
+                    }
+                }
+                if (ImGui::BeginDragDropSource()) {
+                    ImGui::SetDragDropPayload("ASSET_TEXTURE", name.c_str(), name.size() + 1);
+                    ImGui::Text("Texture: %s", name.c_str());
+                    ImGui::EndDragDropSource();
+                }
+            }
+            ImGui::TreePop();
         }
-        if (ImGui::Button("Circle", ImVec2(-1, 0))) {
-            scene.CreateCircleEntity(newPos[0], newPos[1], newSize[0] * 0.5f,
-                newColor[0], newColor[1], newColor[2]);
+
+        // ---- scenes ----
+        std::string sceneDir = ResolveAssetDir("assets/scenes");
+        if (ImGui::TreeNode("scenes")) {
+            auto files = ListFiles(sceneDir, {".txt", ".scene"});
+            for (const auto& name : files) {
+                if (ImGui::Selectable(name.c_str())) {
+                    std::string path = sceneDir + "/" + name;
+                    scene.LoadFromFile(path);
+                }
+            }
+            ImGui::TreePop();
+        }
+
+        // ---- audio ----
+        std::string audioDir = ResolveAssetDir("assets/audio");
+        if (ImGui::TreeNode("audio")) {
+            auto files = ListFiles(audioDir, {".wav", ".ogg", ".mp3"});
+            for (const auto& name : files) {
+                ImGui::Selectable(name.c_str()); // play later if you want
+            }
+            ImGui::TreePop();
         }
     }
     ImGui::End();
@@ -350,6 +462,12 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app) {
                         bool flipV = selected->GetFlipVertical();
                         if (ImGui::Checkbox("Flip Y", &flipV)) {
                             selected->SetFlipVertical(flipV);
+                        }
+
+                        if (selected->GetTexture()) {
+                            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.5f, 1.0f), "Texture: assigned");
+                        } else {
+                            ImGui::TextDisabled("Texture: none");
                         }
 
                         ImGui::Separator();
