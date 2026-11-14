@@ -76,6 +76,9 @@ class Entity {
         void SetCurrentFrameIndex(int index);
         bool AddAnimationFrame(float u, float v, float w, float h, float duration);
 
+        void SetName(const std::string& name) { m_Name = name; }
+        const std::string& GetName() const { return m_Name; }
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -100,4 +103,6 @@ class Entity {
         
         std::unordered_map<std::string, Animation> m_Animations;
         Animation* m_CurrentAnim = nullptr;
+
+        std::string m_Name = "Entity";
 };

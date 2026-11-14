@@ -10,6 +10,7 @@
 Scene::Scene() {
     // Create Player
     auto player = std::make_unique<Player>(100.0f, 200.0f, 80.0f, 80.0f);
+    player->SetName("Player");
     m_Entities.push_back(std::move(player));
     m_Tilemap.Create(40, 30, 32); // 40x30 tiles, 32px each
     m_Tilemap.SetAllNonZeroSolid(true);
@@ -164,6 +165,7 @@ void Scene::CreateRectangleEntity(float x, float y, float w, float h, float r, f
         static_cast<Uint8>(g * 255),
         static_cast<Uint8>(b * 255)
     );
+    entity->SetName("Rectangle");
     m_Entities.push_back(std::move(entity));
 }
 
@@ -185,6 +187,7 @@ Entity* Scene::GetSelectedEntityPtr() {
 void Scene::CreateCircleEntity(float x, float y, float radius, float r, float g, float b) {
     auto entity = std::make_unique<Entity>(x, y, radius * 2.0f, radius * 2.0f);
     entity->SetShape(ShapeType::Circle);
+    entity->SetName("Circle");
     entity->SetColor(
         static_cast<Uint8>(r * 255),
         static_cast<Uint8>(g * 255),
@@ -256,6 +259,7 @@ bool Scene::SaveToFile(const std::string& path){
         if (!entity) continue;
 
         file << "ENTITY "
+             << entity->GetName() << " "
              << entity->GetX() << " "
              << entity->GetY() << " "
              << entity->GetW() << " "
@@ -301,10 +305,12 @@ bool Scene::LoadFromFile(const std::string& path) {
             float x, y, w, h;
             int shape, r, g, b;
             float gravity, friction, bounciness;
+            std::string name;
 
-            ss >> x >> y >> w >> h >> shape >> r >> g >> b >> gravity >> friction >> bounciness;
+            ss >> name >> x >> y >> w >> h >> shape >> r >> g >> b >> gravity >> friction >> bounciness;
 
             auto entity = std::make_unique<Entity>(x, y, w, h);
+            entity->SetName(name);
             entity->SetShape(static_cast<ShapeType>(shape));
             entity->SetColor(static_cast<Uint8>(r), static_cast<Uint8>(g), static_cast<Uint8>(b));
             entity->SetGravityScale(gravity);

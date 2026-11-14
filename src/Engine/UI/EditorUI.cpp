@@ -17,12 +17,156 @@ namespace {
 constexpr float kPanelGap = 8.0f;
 constexpr float kOuterMargin = 10.0f;
 constexpr float kTopOffset = 28.0f;
-constexpr float kBottomMargin = 10.0f;
+constexpr float kBottomMargin =  34.0f; //10.0f;
 constexpr float kMinimumViewportWidth = 320.0f;
 constexpr float kMinimumPanelWidth = 170.0f;
 constexpr float kMaximumPanelWidth = 280.0f;
 }
 namespace fs = std::filesystem;
+
+static const char* GetEntityIcon(const Entity* e) {
+    if (!e) return "?";
+
+    // Player by name or index 0 if you prefer
+    if (e->GetName() == "Player") return "P";
+
+    if (e->GetTexture()) return "S";          // Sprite
+    if (e->GetShape() == ShapeType::Circle) return "C";
+    return "R";                               // Rectangle
+}
+
+static ImVec4 GetEntityIconColor(const Entity* e) {
+    if (!e) return ImVec4(0.6f, 0.6f, 0.6f, 1.0f);
+
+    if (e->GetName() == "Player")
+        return ImVec4(0.35f, 0.75f, 1.0f, 1.0f); // blue
+    if (e->GetTexture())
+        return ImVec4(0.45f, 0.90f, 0.55f, 1.0f); // green sprite
+    if (e->GetShape() == ShapeType::Circle)
+        return ImVec4(0.95f, 0.75f, 0.30f, 1.0f); // yellow circle
+    return ImVec4(0.95f, 0.45f, 0.45f, 1.0f);     // red rect
+}
+
+static void DrawResourceGrid(
+    const std::string& dir,
+    const std::vector<std::string>& files,
+    SDL_Renderer* renderer,
+    Scene& scene,
+    Entity* selected,
+    bool isTextureFolder
+) {
+    if (files.empty()) {
+        ImGui::TextDisabled("Empty");
+        return;
+    }
+
+    const float thumb = 64.0f;
+    const float padding = 8.0f;
+    const float cell = thumb + padding;
+    const float panelWidth = ImGui::GetContentRegionAvail().x;
+    const int columns = std::max(1, static_cast<int>(panelWidth / cell));
+    if (!ImGui::BeginTable(
+            "ResourceGrid",
+            columns,
+            ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoSavedSettings)) {
+        return;
+    }
+
+    for (int column = 0; column < columns; ++column) {
+        const std::string columnID = "##Resource" + std::to_string(column);
+        ImGui::TableSetupColumn(columnID.c_str(), ImGuiTableColumnFlags_WidthFixed, cell);
+    }
+
+    for (const auto& name : files) {
+        ImGui::TableNextColumn();
+        ImGui::PushID(name.c_str());
+
+        ImVec2 cursor = ImGui::GetCursorScreenPos();
+
+        bool clicked = false;
+
+        if (isTextureFolder) {
+            std::string path = dir + "/" + name;
+            auto tex = TextureManager::Get().Load(renderer, path);
+
+            if (tex && tex->GetSDLTexture()) {
+                ImGui::Image(
+                    (ImTextureID)(intptr_t)tex->GetSDLTexture(),
+                    ImVec2(thumb, thumb)
+                );
+                clicked = ImGui::IsItemClicked();
+
+                // hover border
+                if (ImGui::IsItemHovered()) {
+                    ImGui::GetWindowDrawList()->AddRect(
+                        cursor,
+                        ImVec2(cursor.x + thumb, cursor.y + thumb),
+                        IM_COL32(255, 220, 50, 255),
+                        0.0f, 0, 2.0f
+                    );
+                }
+            } else {
+                // fallback tile
+                ImGui::Dummy(ImVec2(thumb, thumb));
+                ImGui::GetWindowDrawList()->AddRectFilled(
+                    cursor,
+                    ImVec2(cursor.x + thumb, cursor.y + thumb),
+                    IM_COL32(50, 50, 55, 255)
+                );
+            }
+        } else {
+            // non-texture badge
+            ImGui::Dummy(ImVec2(thumb, thumb));
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            dl->AddRectFilled(cursor, ImVec2(cursor.x + thumb, cursor.y + thumb), IM_COL32(45, 48, 58, 255));
+            dl->AddRect(cursor, ImVec2(cursor.x + thumb, cursor.y + thumb), IM_COL32(90, 90, 110, 255));
+
+            // extension label
+            std::string ext = fs::path(name).extension().string();
+            ImVec2 ts = ImGui::CalcTextSize(ext.c_str());
+            dl->AddText(
+                ImVec2(cursor.x + (thumb - ts.x) * 0.5f, cursor.y + (thumb - ts.y) * 0.5f),
+                IM_COL32(180, 180, 200, 255),
+                ext.c_str()
+            );
+            clicked = ImGui::IsItemClicked();
+        }
+
+        // filename under thumbnail
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x);
+        ImGui::TextUnformatted(name.c_str());
+        ImGui::PopTextWrapPos();
+
+        // click actions
+        if (clicked) {
+            if (isTextureFolder && selected) {
+                std::string path = dir + "/" + name;
+                auto tex = TextureManager::Get().Load(renderer, path);
+                if (tex) {
+                    selected->StopAnimation();
+                    selected->SetTexture(tex);
+                    selected->SetSize(64, 64);
+                }
+            } else if (!isTextureFolder) {
+                // scenes folder: load on click
+                if (dir.find("scenes") != std::string::npos) {
+                    scene.LoadFromFile(dir + "/" + name);
+                }
+            }
+        }
+
+        // drag source for textures
+        if (isTextureFolder && ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+            ImGui::SetDragDropPayload("ASSET_TEXTURE", name.c_str(), name.size() + 1);
+            ImGui::Text("%s", name.c_str());
+            ImGui::EndDragDropSource();
+        }
+
+        ImGui::PopID();
+    }
+
+    ImGui::EndTable();
+}
 
 static std::vector<std::string> ListFiles(const std::string& dir, const std::vector<std::string>& exts) {
     std::vector<std::string> result;
@@ -189,11 +333,20 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
             if (!entity) {
                 continue;
             }
+            ImGui::PushID(static_cast<int>(i));
+            const char* icon = GetEntityIcon(entity);
+            ImVec4 iconCol = GetEntityIconColor(entity);
 
-            char label[80];
-            std::snprintf(label, sizeof(label), "Entity %zu  (%.0f, %.0f)",
-                i, entity->GetX(), entity->GetY());
-            if (ImGui::Selectable(label, scene.GetSelectedEntity() == static_cast<int>(i))) {
+            ImGui::PushStyleColor(ImGuiCol_Text, iconCol);
+            ImGui::Text("%s", icon);
+            ImGui::PopStyleColor();
+
+            ImGui::SameLine();
+
+            char label[128];
+            std::snprintf(label, sizeof(label), "%s##%zu",  entity->GetName().c_str(), i);
+            bool selected = (scene.GetSelectedEntity() == static_cast<int>(i));
+            if (ImGui::Selectable(label, selected)) {
                 scene.SetSelectedEntity(static_cast<int>(i));
             }
 
@@ -215,6 +368,7 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                 }
                 ImGui::EndDragDropTarget();
             }
+            ImGui::PopID();
         }
 
         if (ImGui::Button("+ Rect")) {
@@ -226,7 +380,6 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
         }
 
     ImGui::Separator();
-    ImGui::TextDisabled("%zu OBJECTS", scene.GetEntityCount());
     }
     ImGui::End();
 
@@ -239,58 +392,27 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
 
         Entity* selected = scene.GetSelectedEntityPtr();
 
-        // ---- textures ----
         std::string texDir = ResolveAssetDir("assets/textures");
-        if (ImGui::TreeNode("textures")) {
+        if (ImGui::TreeNodeEx("textures", ImGuiTreeNodeFlags_DefaultOpen)) {
             auto files = ListFiles(texDir, {".png", ".jpg", ".jpeg", ".bmp"});
-
-            if (files.empty()) {
-                ImGui::TextDisabled("No textures found");
-            }
-
-            for (const auto& name : files) {
-                if (ImGui::Selectable(name.c_str())) {
-                    if (selected) {
-                        std::string path = texDir + "/" + name;
-                        auto tex = TextureManager::Get().Load(renderer, path);
-                        if (tex) {
-                            selected->StopAnimation();
-                            selected->SetTexture(tex);
-                            selected->SetSize(64, 64); // safe display size
-                        }
-                    }
-                }
-                if (ImGui::BeginDragDropSource()) {
-                    ImGui::SetDragDropPayload("ASSET_TEXTURE", name.c_str(), name.size() + 1);
-                    ImGui::Text("Texture: %s", name.c_str());
-                    ImGui::EndDragDropSource();
-                }
-            }
+            DrawResourceGrid(texDir, files, renderer, scene, selected, true);
             ImGui::TreePop();
         }
 
-        // ---- scenes ----
         std::string sceneDir = ResolveAssetDir("assets/scenes");
         if (ImGui::TreeNode("scenes")) {
             auto files = ListFiles(sceneDir, {".txt", ".scene"});
-            for (const auto& name : files) {
-                if (ImGui::Selectable(name.c_str())) {
-                    std::string path = sceneDir + "/" + name;
-                    scene.LoadFromFile(path);
-                }
-            }
+            DrawResourceGrid(sceneDir, files, renderer, scene, selected, false);
             ImGui::TreePop();
         }
 
-        // ---- audio ----
         std::string audioDir = ResolveAssetDir("assets/audio");
         if (ImGui::TreeNode("audio")) {
             auto files = ListFiles(audioDir, {".wav", ".ogg", ".mp3"});
-            for (const auto& name : files) {
-                ImGui::Selectable(name.c_str()); // play later if you want
-            }
+            DrawResourceGrid(audioDir, files, renderer, scene, selected, false);
             ImGui::TreePop();
         }
+          
     }
     ImGui::End();
 
@@ -305,6 +427,12 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                 if (!selected) {
                     ImGui::TextDisabled("Select an entity in the Hierarchy or Game View.");
                 } else {
+                    char nameBuf[64];
+                    std::snprintf(nameBuf, sizeof(nameBuf), "%s", selected->GetName().c_str());
+
+                    if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf))) {
+                        selected->SetName(nameBuf);
+                    }
                     ImGui::Text("Entity %d", scene.GetSelectedEntity());
                     ImGui::Separator();
 
@@ -736,6 +864,75 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
             }
             ImGui::EndTabBar();
         }
+    }
+    ImGui::End();
+
+    // ===== Bottom Status Bar =====
+    const float statusH = 28.0f;
+    ImGui::SetNextWindowPos(ImVec2(0.0f, displaySize.y - statusH), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(displaySize.x, statusH), ImGuiCond_Always);
+
+    ImGuiWindowFlags statusFlags =
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoNav;
+
+    if (ImGui::Begin("##StatusBar", nullptr, statusFlags)) {
+        // Left side
+        ImGui::TextColored(ImVec4(0.45f, 0.90f, 0.55f, 1.0f), "Ready");
+        ImGui::SameLine();
+        ImGui::TextDisabled("|");
+        ImGui::SameLine();
+
+        ImGui::Text("Scene: scene1");
+        ImGui::SameLine();
+        ImGui::TextDisabled("|");
+        ImGui::SameLine();
+
+        int selectedIndex = scene.GetSelectedEntity();
+        if (selectedIndex >= 0) {
+            Entity* e = scene.GetSelectedEntityPtr();
+            if (e) {
+                ImGui::Text("Selected: %s", e->GetName().c_str());
+            } else {
+                ImGui::Text("Selected: Entity %d", selectedIndex);
+            }
+        } else {
+            ImGui::TextDisabled("Selected: None");
+        }
+
+        ImGui::SameLine();
+        ImGui::TextDisabled("|");
+        ImGui::SameLine();
+
+        // Mode
+        EditorMode mode = app.GetMode();
+        if (mode == EditorMode::Play) {
+            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.5f, 1.0f), "Playing");
+        } else if (mode == EditorMode::Paused) {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "Paused");
+        } else {
+            ImGui::Text("Edit");
+        }
+
+        // Right side: FPS
+        static float displayFps = 0.0f;
+        static float displayMs = 0.0f;
+        static float fpsTimer = 0.0f;
+        fpsTimer += deltaTime;
+        if (fpsTimer >= 0.25f) {
+            displayFps = Time::GetFPS();
+            displayMs = deltaTime * 1000.0f;
+            fpsTimer = 0.0f;
+        }
+
+        char rightText[64];
+        std::snprintf(rightText, sizeof(rightText), "FPS: %.1f | %.2f ms", displayFps, displayMs);
+
+        float rightWidth = ImGui::CalcTextSize(rightText).x;
+        ImGui::SameLine(ImGui::GetWindowWidth() - rightWidth - 12.0f);
+        ImGui::TextUnformatted(rightText);
     }
     ImGui::End();
 }
