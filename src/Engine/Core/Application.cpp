@@ -25,14 +25,6 @@ Application::Application(){
 
     auto& tm = TextureManager::Get();
     SDL_Renderer* renderer = m_Window->GetRenderer();
-
-    auto tileset = TextureManager::Get().Load(
-        m_Window->GetRenderer(),
-        "assets/textures/tileset.png");
-    if (tileset)
-    {
-        m_Scene->GetTilemap().SetTileset(tileset, 8);
-    }
    auto sheet = tm.Load(renderer, "assets/textures/players_sheet.jpg"); 
    auto playerTex = tm.Load(renderer, "assets/textures/player.png");
    if(playerTex) m_Scene->SetPlayerTexture(playerTex);
@@ -143,6 +135,13 @@ void Application::Run(){
                 static_cast<Uint8>(b * 255), 255);
             SDL_RenderClear(m_Window->GetRenderer());
 
+            m_Scene->RenderBackgrounds(
+                m_Window->GetRenderer(),
+                m_Scene->GetCamera().GetX(),
+                (float)vpW,
+                (float)vpH
+            );
+
             m_Scene->Renderer(m_Window->GetRenderer(), static_cast<float>(vpW), static_cast<float>(vpH));
 
             m_Scene->RenderGrid(
@@ -203,63 +202,28 @@ void Application::HandleViewportInput(float canvasX, float canvasY, float canvas
     float worldX = localX + m_Scene->GetCamera().GetX();
     float worldY = localY + m_Scene->GetCamera().GetY();
 
-    if (m_Tool == EditorTool::Select) {
-        if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-            int hit = m_Scene->PickEntityAt(worldX, worldY);
-            m_Scene->SetSelectedEntity(hit);
-
-            if (hit >= 0) {
-                Entity* e = m_Scene->GetEntity(hit);
-                if (e) {
-                    m_Dragging = true;
-                    m_DragOffsetX = worldX - e->GetX();
-                    m_DragOffsetY = worldY - e->GetY();
-                }
-            } else {
-                m_Dragging = false;
-            }
-        }
-
-        if (m_Dragging && active) {
-            Entity* selected = m_Scene->GetSelectedEntityPtr();
-            if (selected) {
-                float newX = worldX - m_DragOffsetX;
-                float newY = worldY - m_DragOffsetY;
-                if (m_Scene->GetSnapToGrid()) {
-                    newX = Snap(newX, m_Scene->GetGridSize());
-                    newY = Snap(newY, m_Scene->GetGridSize());
-                }
-                selected->SetPosition(newX, newY);
-            }
-        }
-
-        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-            m_Dragging = false;
-        }
-    
-    }    
-        // -------- PAN TOOL --------
-        else if (m_Tool == EditorTool::Pan) {
-            if (hovered && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                ImVec2 delta = ImGui::GetIO().MouseDelta;
-                m_Scene->GetCamera().Move(-delta.x, -delta.y);
-            }
-        }
-
-        // -------- PAINT TOOL --------
-        else if (m_Tool == EditorTool::Paint) {
-            if (!hovered) return;
-
+    if (m_Tool == EditorTool::Paint) {
+        if (hovered) {
             if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
                 m_Scene->GetTilemap().PaintTile(worldX, worldY, m_Scene->GetPaintTileId());
             }
             if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-                m_Scene->GetTilemap().PaintTile(worldX, worldY, 0); // erase
+                m_Scene->GetTilemap().PaintTile(worldX, worldY, 0);
             }
         }
-    
+        m_Dragging = false;
+        return;
+    }
 
-    // Mouse pressed → select + start drag
+    if (m_Tool == EditorTool::Pan) {
+        if (hovered && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+            ImVec2 delta = ImGui::GetIO().MouseDelta;
+            m_Scene->GetCamera().Move(-delta.x, -delta.y);
+        }
+        m_Dragging = false;
+        return;
+    }
+
     if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         int hit = m_Scene->PickEntityAt(worldX, worldY);
         m_Scene->SetSelectedEntity(hit);
@@ -276,7 +240,6 @@ void Application::HandleViewportInput(float canvasX, float canvasY, float canvas
         }
     }
 
-    // Mouse held → drag
     if (m_Dragging && active) {
         Entity* selected = m_Scene->GetSelectedEntityPtr();
         if (selected) {
@@ -292,23 +255,6 @@ void Application::HandleViewportInput(float canvasX, float canvasY, float canvas
         }
     }
 
-    if (!m_Dragging && hovered) {
-        // Right mouse = paint
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
-            m_Scene->GetTilemap().PaintTile(
-                worldX,
-                worldY,
-                m_Scene->GetPaintTileId()
-            );
-        }
-
-        // Middle mouse = erase
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Middle)) {
-            m_Scene->GetTilemap().PaintTile(worldX, worldY, 0);
-        }
-    }
-
-    // Mouse released → stop drag
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
         m_Dragging = false;
     }
@@ -320,8 +266,9 @@ void Application::SetMode(EditorMode mode){
 
 void Application::Play() {
     if (m_Mode == EditorMode::Edit) {
-        // starting play from edit: reset player to start
-        m_Scene->ResetPlayerToStart();
+        if (Entity* player = m_Scene->GetEntity(0)) {
+            m_Scene->SetPlayerStart(player->GetX(), player->GetY());
+        }
         m_Scene->ClearWin();
     }
     m_Mode = EditorMode::Play;

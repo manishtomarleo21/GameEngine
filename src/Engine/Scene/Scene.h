@@ -10,6 +10,12 @@
 #include <memory>
 #include <string>
 
+struct BackgroundLayer {
+    std::shared_ptr<Texture> texture;
+    float scrollFactor = 1.0f; // 0 = fixed, 0.3 = slow, 1 = moves with camera
+    float y = 0.0f;
+};
+
 class Scene
 {
     public:
@@ -48,7 +54,7 @@ class Scene
         void DuplicateSelectedEntity();
 
         bool SaveToFile(const std::string& path);
-        bool LoadFromFile(const std::string& path);
+        bool LoadFromFile(const std::string& path, SDL_Renderer* renderer);
 
         int PickEntityAt(float worldX, float worldY) const;
 
@@ -67,8 +73,23 @@ class Scene
 
         void SetPlayerStart(float x, float y);
         void ResetPlayerToStart();
+        void SetGoalEntity(int index);
+        int  GetGoalEntity() const { return m_GoalEntity; }
+        bool CheckGoalReached() const;
         void ClearWin();
         bool IsWin() const { return m_Win; }
+        void FindGoalByName();
+
+        void SetBackgroundLayers(std::shared_ptr<Texture> back,
+                         std::shared_ptr<Texture> front,
+                         float backFactor = 0.2f,
+                         float frontFactor = 0.5f);
+
+        void RenderBackgrounds(SDL_Renderer* renderer, float cameraX, float viewW, float viewH);
+        const std::string& GetBackgroundBackPath() const { return m_BackgroundBackPath; }
+        const std::string& GetBackgroundFrontPath() const { return m_BackgroundFrontPath; }
+        float GetBackgroundBackFactor() const { return m_BackgroundBackFactor; }
+        float GetBackgroundFrontFactor() const { return m_BackgroundFrontFactor; }
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
         Camera m_Camera;
@@ -83,7 +104,13 @@ class Scene
         Tilemap m_Tilemap;
         int m_PaintTileId = 1;
         float m_PlayerStartX = 100.0f;
-        float m_PlayerStartY = 100.0f;
+        float m_PlayerStartY = 200.0f;
         bool  m_Win = false;
+        int m_GoalEntity = -1;
+        std::vector<BackgroundLayer> m_Backgrounds;
+        std::string m_BackgroundBackPath;
+        std::string m_BackgroundFrontPath;
+        float m_BackgroundBackFactor = 0.15f;
+        float m_BackgroundFrontFactor = 0.40f;
 };
 

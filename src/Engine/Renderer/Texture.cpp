@@ -16,6 +16,7 @@ bool Texture::LoadfromFile(SDL_Renderer* renderer, const std::string& path){
     }
 
     SDL_GetTextureSize(m_Texture, &m_Width, &m_Height);
+    m_Path = path;
     return true;
 }
 
@@ -25,4 +26,5 @@ void Texture::Destroy() {
         m_Texture = nullptr;
         m_Width = m_Height = 0;
     }
+    m_Path.clear();
 }

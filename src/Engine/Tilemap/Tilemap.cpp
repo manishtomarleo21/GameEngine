@@ -8,6 +8,10 @@ void Tilemap::Create(int width, int height, int tileSize) {
     m_Tiles.assign(static_cast<size_t>(m_Width * m_Height), 0);
 }
 
+void Tilemap::SetTileSize(int tileSize) {
+    m_TileSize = std::max(1, tileSize);
+}
+
 void Tilemap::Clear(int value) {
     std::fill(m_Tiles.begin(), m_Tiles.end(), value);
 }

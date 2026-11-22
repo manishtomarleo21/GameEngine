@@ -16,6 +16,7 @@ public:
     int  GetWidth() const { return m_Width; }
     int  GetHeight() const { return m_Height; }
     int  GetTileSize() const { return m_TileSize; }
+    void SetTileSize(int tileSize);
 
     int  GetTile(int x, int y) const;
     void SetTile(int x, int y, int id);

@@ -19,6 +19,7 @@ void Collision::Resolve(Entity& a, Entity& b) {
         } else {
             a.SetPosition(a.GetX() + overlapX, a.GetY());
         }
+        a.SetVelocity(0.0f, a.GetVelY());
     } else {
         // Resolve on Y axis
         if (a.GetY() < b.GetY()) {
@@ -26,13 +27,15 @@ void Collision::Resolve(Entity& a, Entity& b) {
         } else {
             a.SetPosition(a.GetX(), a.GetY() + overlapY);
         }
+        a.SetVelocity(a.GetVelX(), 0.0f);
     }
 }
 
 void Collision::ProcessPlayerCollisions(Entity& player, 
                                         const std::vector<std::unique_ptr<Entity>>& entities) {
-    for (size_t i = 1; i < entities.size(); ++i) {   // skip index 0 (the player itself)
-        Entity* other = entities[i].get();
+    for (const auto& entity : entities) {
+        Entity* other = entity.get();
+        if (!other || other == &player) continue;
         if (Check(player, *other)) {
             Resolve(player, *other);
         }

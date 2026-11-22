@@ -5,10 +5,49 @@ Entity::Entity(float x, float y, float w, float h)
     : m_X(x), m_Y(y), m_W(w), m_H(h){
 
     }
+void Entity::SetFrameTextures(const std::vector<std::shared_ptr<Texture>>& frames, float frameTime) {
+    m_FrameTextures = frames;
+    m_FrameTime = frameTime;
+    m_FrameIndex = 0;
+    m_FrameTimer = 0.0f;
+    if (!m_FrameTextures.empty()) {
+        m_Texture = m_FrameTextures[0];
+    }
+}
+
+void Entity::PlayFrames(bool loop) {
+    m_FramesPlaying = !m_FrameTextures.empty();
+    m_FramesLoop = loop;
+}
+
+void Entity::StopFrames() {
+    m_FramesPlaying = false;
+    m_FrameIndex = 0;
+    m_FrameTimer = 0.0f;
+    if (!m_FrameTextures.empty()) {
+        m_Texture = m_FrameTextures[0]; // idle = first frame
+    }
+}
 
 void Entity::Update(float deltaTime){
     if (m_CurrentAnim) {
         m_CurrentAnim->Update(deltaTime);
+        if (m_FramesPlaying && m_FrameTextures.size() > 1) {
+            m_FrameTimer += deltaTime;
+            if (m_FrameTimer >= m_FrameTime) {
+                m_FrameTimer = 0.0f;
+                m_FrameIndex++;
+                if (m_FrameIndex >= (int)m_FrameTextures.size()) {
+                    if (m_FramesLoop) m_FrameIndex = 0;
+                    else {
+                        m_FrameIndex = (int)m_FrameTextures.size() - 1;
+                        m_FramesPlaying = false;
+                    }
+                }
+                m_Texture = m_FrameTextures[m_FrameIndex];
+                m_CurrentAnim = nullptr;
+            }
+        }
     }
     // Apply gravity
     const float GRAVITY =  980.0f;

@@ -84,10 +84,10 @@ static void DrawResourceGrid(
         ImVec2 cursor = ImGui::GetCursorScreenPos();
 
         bool clicked = false;
+        const std::string assetPath = dir + "/" + name;
 
         if (isTextureFolder) {
-            std::string path = dir + "/" + name;
-            auto tex = TextureManager::Get().Load(renderer, path);
+            auto tex = TextureManager::Get().Load(renderer, assetPath);
 
             if (tex && tex->GetSDLTexture()) {
                 ImGui::Image(
@@ -140,8 +140,7 @@ static void DrawResourceGrid(
         // click actions
         if (clicked) {
             if (isTextureFolder && selected) {
-                std::string path = dir + "/" + name;
-                auto tex = TextureManager::Get().Load(renderer, path);
+                auto tex = TextureManager::Get().Load(renderer, assetPath);
                 if (tex) {
                     selected->StopAnimation();
                     selected->SetTexture(tex);
@@ -150,14 +149,14 @@ static void DrawResourceGrid(
             } else if (!isTextureFolder) {
                 // scenes folder: load on click
                 if (dir.find("scenes") != std::string::npos) {
-                    scene.LoadFromFile(dir + "/" + name);
+                    scene.LoadFromFile(dir + "/" + name, renderer);
                 }
             }
         }
 
         // drag source for textures
         if (isTextureFolder && ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-            ImGui::SetDragDropPayload("ASSET_TEXTURE", name.c_str(), name.size() + 1);
+            ImGui::SetDragDropPayload("ASSET_TEXTURE", assetPath.c_str(), assetPath.size() + 1);
             ImGui::Text("%s", name.c_str());
             ImGui::EndDragDropSource();
         }
@@ -174,12 +173,14 @@ static std::vector<std::string> ListFiles(const std::string& dir, const std::vec
     std::error_code ec;
     if (!fs::exists(dir, ec)) return result;
 
-    for (const auto& entry : fs::directory_iterator(dir, ec)) {
-        if (ec) break;
-        if (!entry.is_regular_file()) continue;
+    fs::directory_iterator it(dir, ec);
+    const fs::directory_iterator end;
+    for (; !ec && it != end; it.increment(ec)) {
+        std::error_code entryError;
+        if (!it->is_regular_file(entryError) || entryError) continue;
 
-        std::string filename = entry.path().filename().string();
-        std::string ext = entry.path().extension().string();
+        std::string filename = it->path().filename().string();
+        std::string ext = it->path().extension().string();
 
         // lowercase extension check
         for (char& c : ext) c = static_cast<char>(tolower(c));
@@ -196,6 +197,92 @@ static std::vector<std::string> ListFiles(const std::string& dir, const std::vec
     return result;
 }
 
+static std::vector<fs::path> ListDirectories(const std::string& dir) {
+    std::vector<fs::path> result;
+
+    std::error_code ec;
+    fs::directory_iterator it(dir, ec);
+    const fs::directory_iterator end;
+    for (; !ec && it != end; it.increment(ec)) {
+        std::error_code entryError;
+        if (it->is_symlink(entryError) || entryError) continue;
+        if (it->is_directory(entryError) && !entryError) {
+            result.push_back(it->path());
+        }
+    }
+
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+static std::vector<std::string> ListTextureAssets(const std::string& dir) {
+    std::vector<std::string> result;
+    const std::vector<std::string> exts = {".png", ".jpg", ".jpeg", ".bmp"};
+
+    std::error_code ec;
+    fs::recursive_directory_iterator it(dir, fs::directory_options::skip_permission_denied, ec);
+    const fs::recursive_directory_iterator end;
+    for (; !ec && it != end; it.increment(ec)) {
+        std::error_code entryError;
+        if (!it->is_regular_file(entryError) || entryError) continue;
+
+        std::string ext = it->path().extension().string();
+        for (char& c : ext) c = static_cast<char>(tolower(c));
+        if (std::find(exts.begin(), exts.end(), ext) == exts.end()) continue;
+
+        result.push_back(it->path().lexically_relative(dir).generic_string());
+    }
+
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+static bool DrawTextureAssetCombo(
+    const char* label,
+    const std::vector<std::string>& assets,
+    std::string& selectedAsset
+) {
+    bool changed = false;
+    const char* preview = selectedAsset.empty() ? "(None)" : selectedAsset.c_str();
+
+    if (ImGui::BeginCombo(label, preview)) {
+        if (ImGui::Selectable("(None)", selectedAsset.empty())) {
+            changed = !selectedAsset.empty();
+            selectedAsset.clear();
+        }
+
+        for (const auto& asset : assets) {
+            const bool selected = selectedAsset == asset;
+            if (ImGui::Selectable(asset.c_str(), selected) && !selected) {
+                selectedAsset = asset;
+                changed = true;
+            }
+            if (selected) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
+static void DrawTextureDirectory(
+    const std::string& dir,
+    SDL_Renderer* renderer,
+    Scene& scene,
+    Entity* selected
+) {
+    const auto files = ListFiles(dir, {".png", ".jpg", ".jpeg", ".bmp"});
+    DrawResourceGrid(dir, files, renderer, scene, selected, true);
+
+    for (const auto& subdirectory : ListDirectories(dir)) {
+        const std::string name = subdirectory.filename().string();
+        if (ImGui::TreeNode(name.c_str())) {
+            DrawTextureDirectory(subdirectory.string(), renderer, scene, selected);
+            ImGui::TreePop();
+        }
+    }
+}
+
 static std::string ResolveAssetDir(const std::string& relativeDir) {
     if (fs::exists(relativeDir)) return relativeDir;
     std::string alt = std::string("../") + relativeDir;
@@ -210,7 +297,7 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                 scene.SaveToFile("assets/scenes/scene1.txt");
             }
             if (ImGui::MenuItem("Load Scene")) {
-                scene.LoadFromFile("assets/scenes/scene1.txt");
+                scene.LoadFromFile("assets/scenes/scene1.txt", renderer);
             }
             ImGui::EndMenu();
         }
@@ -353,11 +440,7 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
             // Drop texture onto this entity
             if (ImGui::BeginDragDropTarget()) {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_TEXTURE")) {
-                    const char* filename = static_cast<const char*>(payload->Data);
-
-                    std::string texDir = ResolveAssetDir("assets/textures");
-                    std::string path = texDir + "/" + filename;
-
+                    const char* path = static_cast<const char*>(payload->Data);
                     auto tex = TextureManager::Get().Load(renderer, path);
                     if (tex) {
                         entity->StopAnimation();
@@ -394,8 +477,7 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
 
         std::string texDir = ResolveAssetDir("assets/textures");
         if (ImGui::TreeNodeEx("textures", ImGuiTreeNodeFlags_DefaultOpen)) {
-            auto files = ListFiles(texDir, {".png", ".jpg", ".jpeg", ".bmp"});
-            DrawResourceGrid(texDir, files, renderer, scene, selected, true);
+            DrawTextureDirectory(texDir, renderer, scene, selected);
             ImGui::TreePop();
         }
 
@@ -722,6 +804,17 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
             }
 
             if (ImGui::BeginTabItem("Scene & Tools")) {
+                const std::string textureRoot = ResolveAssetDir("assets/textures");
+                const auto textureAssets = ListTextureAssets(textureRoot);
+                const auto loadTextureAsset = [&](const std::string& asset) -> std::shared_ptr<Texture> {
+                    if (asset.empty()) return nullptr;
+                    return TextureManager::Get().Load(renderer, textureRoot + "/" + asset);
+                };
+                const auto relativeTextureAsset = [&](const std::string& path) {
+                    if (path.empty()) return std::string{};
+                    return fs::path(path).lexically_relative(textureRoot).generic_string();
+                };
+
                 ImGui::Text("Performance");
                 // Smoothed display (updates ~4 times/sec)
                 static float displayFps = 0.0f;
@@ -746,6 +839,34 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                     scene.SetBackgroundColor(bgColor[0], bgColor[1], bgColor[2]);
                 }
 
+                ImGui::Separator();
+                ImGui::Text("Background Layers");
+                std::string backgroundBackAsset = relativeTextureAsset(scene.GetBackgroundBackPath());
+                std::string backgroundFrontAsset = relativeTextureAsset(scene.GetBackgroundFrontPath());
+                float backFactor = scene.GetBackgroundBackFactor();
+                float frontFactor = scene.GetBackgroundFrontFactor();
+                bool backgroundChanged = false;
+                if (DrawTextureAssetCombo("Back Layer", textureAssets, backgroundBackAsset)) {
+                    backgroundChanged = true;
+                }
+                if (DrawTextureAssetCombo("Front Layer", textureAssets, backgroundFrontAsset)) {
+                    backgroundChanged = true;
+                }
+                if (ImGui::DragFloat("Back Parallax", &backFactor, 0.01f, 0.0f, 1.0f, "%.2f")) {
+                    backgroundChanged = true;
+                }
+                if (ImGui::DragFloat("Front Parallax", &frontFactor, 0.01f, 0.0f, 1.0f, "%.2f")) {
+                    backgroundChanged = true;
+                }
+                if (backgroundChanged) {
+                    scene.SetBackgroundLayers(
+                        loadTextureAsset(backgroundBackAsset),
+                        loadTextureAsset(backgroundFrontAsset),
+                        backFactor,
+                        frontFactor
+                    );
+                }
+
                 bool snap = scene.GetSnapToGrid();
                 if (ImGui::Checkbox("Snap to Grid", &snap)) {
                     scene.SetSnapToGrid(snap);
@@ -760,7 +881,7 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                     scene.SaveToFile("assets/scenes/scene1.txt");
                 }
                 if (ImGui::Button("Load Scene", ImVec2(-1, 0))) {
-                    scene.LoadFromFile("assets/scenes/scene1.txt");
+                    scene.LoadFromFile("assets/scenes/scene1.txt", renderer);
                 }
 
                 ImGui::Separator();
@@ -793,6 +914,40 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                 ImGui::Text("Tilemap");
 
                 Tilemap& tilemap = scene.GetTilemap();
+                std::string groundTilesetAsset;
+                if (const auto tileset = tilemap.GetTileset()) {
+                    groundTilesetAsset = relativeTextureAsset(tileset->GetPath());
+                }
+                if (DrawTextureAssetCombo("Ground Tileset", textureAssets, groundTilesetAsset)) {
+                    if (groundTilesetAsset.empty()) {
+                        tilemap.SetTileset(nullptr, 1);
+                    } else if (auto ground = loadTextureAsset(groundTilesetAsset)) {
+                        const int textureWidth = static_cast<int>(ground->GetWidth());
+                        const int textureHeight = static_cast<int>(ground->GetHeight());
+                        const int tileSize = std::max(1, std::min(textureWidth, textureHeight));
+                        tilemap.SetTileSize(tileSize);
+                        tilemap.SetTileset(
+                            ground,
+                            std::max(1, textureWidth / tileSize)
+                        );
+                        scene.SetPaintTileId(1);
+                    }
+                }
+
+                if (auto tileset = tilemap.GetTileset()) {
+                    int tileSize = tilemap.GetTileSize();
+                    const int textureWidth = static_cast<int>(tileset->GetWidth());
+                    const int textureHeight = static_cast<int>(tileset->GetHeight());
+                    const int maxTileSize = std::max(1, std::min(textureWidth, textureHeight));
+                    if (ImGui::DragInt("Tile Size", &tileSize, 1.0f, 1, maxTileSize)) {
+                        tilemap.SetTileSize(tileSize);
+                        tilemap.SetTileset(
+                            tileset,
+                            std::max(1, textureWidth / tileSize)
+                        );
+                    }
+                }
+
                 ImGui::Text("Map: %d x %d | Tile: %d px",
                     tilemap.GetWidth(), tilemap.GetHeight(), tilemap.GetTileSize());
 

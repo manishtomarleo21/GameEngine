@@ -79,6 +79,10 @@ class Entity {
         void SetName(const std::string& name) { m_Name = name; }
         const std::string& GetName() const { return m_Name; }
 
+        void SetFrameTextures(const std::vector<std::shared_ptr<Texture>>& frames, float frameTime = 0.10f);
+        void PlayFrames(bool loop = true);
+        void StopFrames();
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -93,6 +97,11 @@ class Entity {
         bool m_FlipH = false;
         bool m_Visible = true;
         bool m_FlipV = false;
+        int   m_FrameIndex = 0;
+        float m_FrameTime  = 0.10f;
+        float m_FrameTimer = 0.0f;
+        bool  m_FramesPlaying = false;
+        bool  m_FramesLoop = true;
 
         Uint8 m_ColorR = 255;
         Uint8 m_ColorG = 255;
@@ -105,4 +114,5 @@ class Entity {
         Animation* m_CurrentAnim = nullptr;
 
         std::string m_Name = "Entity";
+        std::vector<std::shared_ptr<Texture>> m_FrameTextures;
 };

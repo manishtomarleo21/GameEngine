@@ -2,17 +2,62 @@
 #include "Engine/Physics/Collision.h"
 #include "Engine/Physics/Physics.h"
 #include "Engine/Audio/Audio.h"
+#include "Engine/Resources/TextureManager.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <cmath>
+#include <iomanip>
+
+void Scene::SetBackgroundLayers(
+    std::shared_ptr<Texture> back,
+    std::shared_ptr<Texture> front,
+    float backFactor,
+    float frontFactor
+) {
+    m_Backgrounds.clear();
+    m_BackgroundBackPath = back ? back->GetPath() : "";
+    m_BackgroundFrontPath = front ? front->GetPath() : "";
+    m_BackgroundBackFactor = backFactor;
+    m_BackgroundFrontFactor = frontFactor;
+    if (back)  m_Backgrounds.push_back({ back,  backFactor,  0.0f });
+    if (front) m_Backgrounds.push_back({ front, frontFactor, 0.0f });
+}
+
+void Scene::RenderBackgrounds(SDL_Renderer* renderer, float cameraX, float viewW, float viewH) {
+    for (auto& layer : m_Backgrounds) {
+        if (!layer.texture || !layer.texture->GetSDLTexture()) continue;
+
+        float w = layer.texture->GetWidth();
+        float h = layer.texture->GetHeight();
+
+        // scale to view height
+        float scale = viewH / h;
+        float drawW = w * scale;
+        float drawH = viewH;
+
+        float offsetX = -std::fmod(cameraX * layer.scrollFactor, drawW);
+        if (offsetX > 0) offsetX -= drawW;
+
+        // draw twice for seamless scroll
+        for (int i = 0; i < 3; ++i) {
+            SDL_FRect dst = {
+                offsetX + i * drawW,
+                layer.y,
+                drawW,
+                drawH
+            };
+            SDL_RenderTexture(renderer, layer.texture->GetSDLTexture(), nullptr, &dst);
+        }
+    }
+}
 
 Scene::Scene() {
     // Create Player
     auto player = std::make_unique<Player>(100.0f, 200.0f, 80.0f, 80.0f);
     player->SetName("Player");
     m_Entities.push_back(std::move(player));
-    m_Tilemap.Create(40, 30, 32); // 40x30 tiles, 32px each
+    m_Tilemap.Create(80, 40, 32);
     m_Tilemap.SetAllNonZeroSolid(true);
     if (m_Entities.size() > 1)
     {
@@ -23,9 +68,14 @@ Scene::Scene() {
 }
 
 void Scene::Update(float deltaTime){
-    for(auto& entity : m_Entities){
+    for (size_t i = 0; i < m_Entities.size(); ++i) {
+        auto& entity = m_Entities[i];
         if (!entity) continue;
-        entity->Update(deltaTime);
+        if (i == 0) {
+            Player::UpdateControlledEntity(*entity, deltaTime);
+        } else {
+            entity->Update(deltaTime);
+        }
         float x = entity->GetX();
         float y = entity->GetY();
         float w = entity->GetW();
@@ -39,12 +89,30 @@ void Scene::Update(float deltaTime){
         }
     }
     m_Particles.Update(deltaTime);
+    m_GoalEntity = -1;
+    for (int i = 0; i < (int)m_Entities.size(); ++i) {
+        if (m_Entities[i] && m_Entities[i]->GetName() == "Goal") {
+            m_GoalEntity = i;
+            break;
+        }
+    }
     //Gravity Test
    Physics::ApplyFloorCollision(m_Entities, m_FloorY);
 
-    // Collision
-    if (!m_Entities.empty()) {
-        Collision::ProcessPlayerCollisions(*m_Entities[0], m_Entities);
+    // Resolve collisions for every gravity-enabled entity against the scene geometry.
+    for (const auto& entity : m_Entities) {
+        if (entity && entity->GetGravityScale() > 0.0f) {
+            Collision::ProcessPlayerCollisions(*entity, m_Entities);
+        }
+    }
+       if (!m_Win && CheckGoalReached()) {
+        m_Win = true;
+
+        if (Entity* goal = GetEntity(m_GoalEntity)) {
+            float cx = goal->GetX() + goal->GetW() * 0.5f;
+            float cy = goal->GetY() + goal->GetH() * 0.5f;
+            m_Particles.EmitPreset(ParticlePreset::Explosion, cx, cy);
+        }
     }
 }
 
@@ -235,8 +303,7 @@ void Scene::DuplicateSelectedEntity() {
     copy->SetFriction(selected->GetFriction());
     copy->SetVelocity(selected->GetVelX(), selected->GetVelY());
 
-    // Optional: copy texture if it has one
-    // (We can improve this later)
+    copy->SetTexture(selected->GetTexture());
 
     m_Entities.push_back(std::move(copy));
 
@@ -251,15 +318,23 @@ bool Scene::SaveToFile(const std::string& path){
         return false;
     }
     // Header
-    file << "SCENE_VERSION 1\n";
+    file << "SCENE_VERSION 2\n";
     // Background
     file << "BG " << m_BgR << " " << m_BgG << " " << m_BgB << "\n";
+    file << "BACKGROUND_LAYERS "
+         << std::quoted(m_BackgroundBackPath) << " " << m_BackgroundBackFactor << " "
+         << std::quoted(m_BackgroundFrontPath) << " " << m_BackgroundFrontFactor << "\n";
+
+    if (const auto tileset = m_Tilemap.GetTileset()) {
+        file << "TILESET " << std::quoted(tileset->GetPath()) << " "
+             << m_Tilemap.GetTileSize() << " " << m_Tilemap.GetTilesPerRow() << "\n";
+    }
     
     for (auto& entity : m_Entities) {
         if (!entity) continue;
 
         file << "ENTITY "
-             << entity->GetName() << " "
+             << std::quoted(entity->GetName()) << " "
              << entity->GetX() << " "
              << entity->GetY() << " "
              << entity->GetW() << " "
@@ -270,7 +345,8 @@ bool Scene::SaveToFile(const std::string& path){
              << static_cast<int>(entity->GetColorB()) << " "
              << entity->GetGravityScale() << " "
              << entity->GetFriction() << " "
-             << entity->GetBounciness()
+             << entity->GetBounciness() << " "
+             << std::quoted(entity->GetTexture() ? entity->GetTexture()->GetPath() : "")
              << "\n";
     }
     m_Tilemap.Save(file);
@@ -279,7 +355,7 @@ bool Scene::SaveToFile(const std::string& path){
     return true;
 }
 
-bool Scene::LoadFromFile(const std::string& path) {
+bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
     std::ifstream file(path);
     if (!file.is_open()) {
         std::cerr << "Failed to load scene: " << path << std::endl;
@@ -289,6 +365,17 @@ bool Scene::LoadFromFile(const std::string& path) {
     // Clear current entities
     m_Entities.clear();
     m_SelectedEntity = -1;
+    SetBackgroundLayers(nullptr, nullptr);
+    m_Tilemap.SetTileset(nullptr, 1);
+
+    const auto loadTexture = [renderer](const std::string& texturePath) -> std::shared_ptr<Texture> {
+        if (texturePath.empty()) return nullptr;
+        if (!renderer) {
+            std::cerr << "Cannot load scene texture without a renderer: " << texturePath << std::endl;
+            return nullptr;
+        }
+        return TextureManager::Get().Load(renderer, texturePath);
+    };
 
     std::string line;
     while (std::getline(file, line)) {
@@ -301,13 +388,40 @@ bool Scene::LoadFromFile(const std::string& path) {
         if (type == "BG") {
             ss >> m_BgR >> m_BgG >> m_BgB;
         }
+        else if (type == "BACKGROUND_LAYERS") {
+            std::string backPath;
+            std::string frontPath;
+            float backFactor = m_BackgroundBackFactor;
+            float frontFactor = m_BackgroundFrontFactor;
+            ss >> std::quoted(backPath) >> backFactor
+               >> std::quoted(frontPath) >> frontFactor;
+            SetBackgroundLayers(
+                loadTexture(backPath),
+                loadTexture(frontPath),
+                backFactor,
+                frontFactor
+            );
+        }
+        else if (type == "TILESET") {
+            std::string tilesetPath;
+            int tileSize = m_Tilemap.GetTileSize();
+            int tilesPerRow = m_Tilemap.GetTilesPerRow();
+            ss >> std::quoted(tilesetPath) >> tileSize >> tilesPerRow;
+            if (auto tileset = loadTexture(tilesetPath)) {
+                m_Tilemap.SetTileset(tileset, tilesPerRow);
+                m_Tilemap.SetTileSize(tileSize);
+            }
+        }
         else if (type == "ENTITY") {
             float x, y, w, h;
             int shape, r, g, b;
             float gravity, friction, bounciness;
             std::string name;
+            std::string texturePath;
 
-            ss >> name >> x >> y >> w >> h >> shape >> r >> g >> b >> gravity >> friction >> bounciness;
+            ss >> std::quoted(name) >> x >> y >> w >> h >> shape >> r >> g >> b
+               >> gravity >> friction >> bounciness;
+            ss >> std::quoted(texturePath);
 
             auto entity = std::make_unique<Entity>(x, y, w, h);
             entity->SetName(name);
@@ -316,6 +430,9 @@ bool Scene::LoadFromFile(const std::string& path) {
             entity->SetGravityScale(gravity);
             entity->SetFriction(friction);
             entity->SetBounciness(bounciness);
+            if (auto texture = loadTexture(texturePath)) {
+                entity->SetTexture(texture);
+            }
 
             m_Entities.push_back(std::move(entity));
         }
@@ -342,6 +459,9 @@ bool Scene::LoadFromFile(const std::string& path) {
     }
 
     file.close();
+    if (!m_Entities.empty()) {
+        SetPlayerStart(m_Entities[0]->GetX(), m_Entities[0]->GetY());
+    }
     std::cout << "Scene loaded: " << path << std::endl;
     return true;
 }
@@ -403,4 +523,40 @@ void Scene::ResetPlayerToStart() {
 
 void Scene::ClearWin() {
     m_Win = false;
+}
+
+void Scene::SetGoalEntity(int index) {
+    if (index >= 0 && index < static_cast<int>(m_Entities.size())) {
+        m_GoalEntity = index;
+    } else {
+        m_GoalEntity = -1;
+    }
+}
+
+bool Scene::CheckGoalReached() const {
+    if (m_GoalEntity < 0 || m_Entities.empty()) return false;
+    if (m_GoalEntity >= static_cast<int>(m_Entities.size())) return false;
+
+    const Entity* player = m_Entities[0].get();
+    const Entity* goal   = m_Entities[m_GoalEntity].get();
+    if (!player || !goal) return false;
+
+    // simple AABB overlap
+    const bool overlap =
+        player->GetX() < goal->GetX() + goal->GetW() &&
+        player->GetX() + player->GetW() > goal->GetX() &&
+        player->GetY() < goal->GetY() + goal->GetH() &&
+        player->GetY() + player->GetH() > goal->GetY();
+
+    return overlap;
+}
+
+void Scene::FindGoalByName() {
+    m_GoalEntity = -1;
+    for (int i = 0; i < static_cast<int>(m_Entities.size()); ++i) {
+        if (m_Entities[i] && m_Entities[i]->GetName() == "Goal") {
+            m_GoalEntity = i;
+            break;
+        }
+    }
 }

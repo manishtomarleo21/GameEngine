@@ -1,5 +1,6 @@
 #include "Engine/Entity/Player.h"
 #include "Engine/Input/Input.h"
+#include <cmath>
 
 Player::Player(float x, float y, float w, float h)
     :Entity(x,y,w,h){
@@ -7,6 +8,11 @@ Player::Player(float x, float y, float w, float h)
     }
 
 void Player::Update(float deltaTime)
+{
+    UpdateControlledEntity(*this, deltaTime);
+}
+
+void Player::UpdateControlledEntity(Entity& entity, float deltaTime)
 {
     float speed = 200.0f;
     float vx = 0.0f;
@@ -17,24 +23,30 @@ void Player::Update(float deltaTime)
     if (Input::IsKeyPressed(SDL_SCANCODE_UP)    || Input::IsKeyPressed(SDL_SCANCODE_W)) vy -= 1.0f;
     if (Input::IsKeyPressed(SDL_SCANCODE_DOWN)  || Input::IsKeyPressed(SDL_SCANCODE_S)) vy += 1.0f;
 
-    SetVelocity(vx, vy);
-    if (vx < 0.0f) SetFlipHorizontal(true);
-    if (vx > 0.0f) SetFlipHorizontal(false);
-
-   // Play run only when moving
-   bool moving = (vx != 0.0f || vy != 0.0f);
-
-    if (moving) {
-        PlayAnimation("run");          // ensure run is active
-        PauseAnimation(false);         // unpause
-    } else {
-        // stay on run animation, but freeze first frame
-        if (!HasAnimation()) {
-            PlayAnimation("run");
-        }
-        PauseAnimation(true);
+    const float directionLength = std::sqrt(vx * vx + vy * vy);
+    if (directionLength > 1.0f) {
+        vx /= directionLength;
+        vy /= directionLength;
     }
 
-    Entity::Update(deltaTime);
+    entity.SetVelocity(vx * speed, vy * speed);
+    if (vx < 0.0f) entity.SetFlipHorizontal(true);
+    if (vx > 0.0f) entity.SetFlipHorizontal(false);
+
+    const bool moving = (vx != 0.0f || vy != 0.0f);
+
+    if (moving) {
+        if (!entity.HasAnimation()) {
+            entity.PlayAnimation("run");
+        }
+        entity.PauseAnimation(false);
+    } else {
+        if (!entity.HasAnimation()) {
+            entity.PlayAnimation("run");
+        }
+        entity.PauseAnimation(true);
+    }
+
+    entity.Entity::Update(deltaTime);
 }
 
