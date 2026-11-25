@@ -71,8 +71,10 @@ void Scene::Update(float deltaTime){
     for (size_t i = 0; i < m_Entities.size(); ++i) {
         auto& entity = m_Entities[i];
         if (!entity) continue;
+        const float previousX = entity->GetX();
+        const float previousY = entity->GetY();
         if (i == 0) {
-            Player::UpdateControlledEntity(*entity, deltaTime);
+            Player::UpdateControlledEntity(*entity, deltaTime, m_MovementMode);
         } else {
             entity->Update(deltaTime);
         }
@@ -83,7 +85,7 @@ void Scene::Update(float deltaTime){
         float vx = entity->GetVelX();
         float vy = entity->GetVelY();
 
-        if (m_Tilemap.ResolveCollision(x, y, w, h, vx, vy)) {
+        if (m_Tilemap.ResolveCollision(previousX, previousY, x, y, w, h, vx, vy)) {
             entity->SetPosition(x, y);
             entity->SetVelocity(vx, vy);
         }
@@ -96,9 +98,6 @@ void Scene::Update(float deltaTime){
             break;
         }
     }
-    //Gravity Test
-   Physics::ApplyFloorCollision(m_Entities, m_FloorY);
-
     // Resolve collisions for every gravity-enabled entity against the scene geometry.
     for (const auto& entity : m_Entities) {
         if (entity && entity->GetGravityScale() > 0.0f) {
@@ -143,7 +142,7 @@ void Scene::Renderer(SDL_Renderer* renderer, float viewW, float viewH) {
     }
 }
 
-void Scene::KeepPlayerInBounds(int windowWidth, int windowHeight) {
+void Scene::KeepPlayerInBounds() {
     if (m_Entities.empty()) return;
 
     auto& player = m_Entities[0];
@@ -154,8 +153,8 @@ void Scene::KeepPlayerInBounds(int windowWidth, int windowHeight) {
 
     if (x < 0) x = 0;
     if (y < 0) y = 0;
-    if (x + w > windowWidth)  x = windowWidth  - w;
-    if (y + h > windowHeight) y = windowHeight - h;
+    if (x + w > m_WorldWidth)  x = m_WorldWidth  - w;
+    if (y + h > m_WorldHeight) y = m_WorldHeight - h;
 
     player->SetPosition(x, y);
 }
@@ -203,6 +202,8 @@ void Scene::SetEntityFriction(size_t index, float friction){
 void Scene::SetCameraBounds(float minX, float minY, float maxX, float maxY){
     m_Camera.SetBounds(minX, minY, maxX, maxY);
     m_Camera.EnableBounds(true);
+    m_WorldWidth = std::max(0.0f, maxX - minX);
+    m_WorldHeight = std::max(0.0f, maxY - minY);
 }
 
 size_t Scene::GetEntityCount() const {
@@ -302,6 +303,7 @@ void Scene::DuplicateSelectedEntity() {
     copy->SetBounciness(selected->GetBounciness());
     copy->SetFriction(selected->GetFriction());
     copy->SetVelocity(selected->GetVelX(), selected->GetVelY());
+    copy->SetSpriteOffset(selected->GetSpriteOffsetX(), selected->GetSpriteOffsetY());
 
     copy->SetTexture(selected->GetTexture());
 
@@ -318,9 +320,10 @@ bool Scene::SaveToFile(const std::string& path){
         return false;
     }
     // Header
-    file << "SCENE_VERSION 2\n";
+    file << "SCENE_VERSION 4\n";
     // Background
     file << "BG " << m_BgR << " " << m_BgG << " " << m_BgB << "\n";
+    file << "MOVEMENT_MODE " << static_cast<int>(m_MovementMode) << "\n";
     file << "BACKGROUND_LAYERS "
          << std::quoted(m_BackgroundBackPath) << " " << m_BackgroundBackFactor << " "
          << std::quoted(m_BackgroundFrontPath) << " " << m_BackgroundFrontFactor << "\n";
@@ -346,7 +349,9 @@ bool Scene::SaveToFile(const std::string& path){
              << entity->GetGravityScale() << " "
              << entity->GetFriction() << " "
              << entity->GetBounciness() << " "
-             << std::quoted(entity->GetTexture() ? entity->GetTexture()->GetPath() : "")
+             << std::quoted(entity->GetTexture() ? entity->GetTexture()->GetPath() : "") << " "
+             << entity->GetSpriteOffsetX() << " "
+             << entity->GetSpriteOffsetY()
              << "\n";
     }
     m_Tilemap.Save(file);
@@ -367,6 +372,7 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
     m_SelectedEntity = -1;
     SetBackgroundLayers(nullptr, nullptr);
     m_Tilemap.SetTileset(nullptr, 1);
+    m_MovementMode = MovementMode::Free;
 
     const auto loadTexture = [renderer](const std::string& texturePath) -> std::shared_ptr<Texture> {
         if (texturePath.empty()) return nullptr;
@@ -387,6 +393,16 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
 
         if (type == "BG") {
             ss >> m_BgR >> m_BgG >> m_BgB;
+        }
+        else if (type == "MOVEMENT_MODE") {
+            int mode = -1;
+            if (!(ss >> mode) ||
+                (mode != static_cast<int>(MovementMode::Free) &&
+                 mode != static_cast<int>(MovementMode::Platformer))) {
+                std::cerr << "Invalid movement mode in scene: " << path << std::endl;
+            } else {
+                m_MovementMode = static_cast<MovementMode>(mode);
+            }
         }
         else if (type == "BACKGROUND_LAYERS") {
             std::string backPath;
@@ -416,12 +432,15 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
             float x, y, w, h;
             int shape, r, g, b;
             float gravity, friction, bounciness;
+            float spriteOffsetX = 0.0f;
+            float spriteOffsetY = 0.0f;
             std::string name;
             std::string texturePath;
 
             ss >> std::quoted(name) >> x >> y >> w >> h >> shape >> r >> g >> b
                >> gravity >> friction >> bounciness;
             ss >> std::quoted(texturePath);
+            ss >> spriteOffsetX >> spriteOffsetY;
 
             auto entity = std::make_unique<Entity>(x, y, w, h);
             entity->SetName(name);
@@ -430,6 +449,7 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
             entity->SetGravityScale(gravity);
             entity->SetFriction(friction);
             entity->SetBounciness(bounciness);
+            entity->SetSpriteOffset(spriteOffsetX, spriteOffsetY);
             if (auto texture = loadTexture(texturePath)) {
                 entity->SetTexture(texture);
             }

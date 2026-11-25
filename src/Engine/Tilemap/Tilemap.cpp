@@ -1,5 +1,6 @@
 #include "Engine/Tilemap/Tilemap.h"
 #include <algorithm>
+#include <cmath>
 
 void Tilemap::Create(int width, int height, int tileSize) {
     m_Width = std::max(1, width);
@@ -123,15 +124,26 @@ bool Tilemap::IsSolidAtWorld(float worldX, float worldY) const {
     return IsSolid(GetTile(tx, ty));
 }
 
-bool Tilemap::ResolveCollision(float& x, float& y, float w, float h, float& velX, float& velY) const {
+bool Tilemap::ResolveCollision(float previousX, float previousY, float& x, float& y,
+                               float w, float h, float& velX, float& velY) const {
     if (m_TileSize <= 0) return false;
 
     bool hit = false;
+    const float deltaX = x - previousX;
+    const float deltaY = y - previousY;
+    const bool movingRight = deltaX > 0.0f;
+    const bool movingLeft = deltaX < 0.0f;
+    const bool movingDown = deltaY > 0.0f;
+    const bool movingUp = deltaY < 0.0f;
+    bool resolvedX = false;
+    bool resolvedY = false;
+    float correctedX = x;
+    float correctedY = y;
 
     int startTX = static_cast<int>(x) / m_TileSize;
     int endTX   = static_cast<int>(x + w - 0.001f) / m_TileSize;
-    int startTY = static_cast<int>(y) / m_TileSize;
-    int endTY   = static_cast<int>(y + h - 0.001f) / m_TileSize;
+    int startTY = static_cast<int>(previousY) / m_TileSize;
+    int endTY   = static_cast<int>(previousY + h - 0.001f) / m_TileSize;
 
     // Resolve X first
     for (int ty = startTY; ty <= endTY; ++ty) {
@@ -144,22 +156,35 @@ bool Tilemap::ResolveCollision(float& x, float& y, float w, float h, float& velX
             float tileBottom = tileTop + m_TileSize;
 
             // overlap check
-            if (x + w <= tileLeft || x >= tileRight || y + h <= tileTop || y >= tileBottom) {
+            if (x + w <= tileLeft || x >= tileRight ||
+                previousY + h <= tileTop || previousY >= tileBottom) {
                 continue;
             }
 
             hit = true;
 
-            float overlapLeft  = (x + w) - tileLeft;
-            float overlapRight = tileRight - x;
-
-            if (overlapLeft < overlapRight) {
-                x = tileLeft - w;
+            if (movingRight) {
+                const float candidate = tileLeft - w;
+                if (!resolvedX || candidate < correctedX) correctedX = candidate;
+                resolvedX = true;
+            } else if (movingLeft) {
+                const float candidate = tileRight;
+                if (!resolvedX || candidate > correctedX) correctedX = candidate;
+                resolvedX = true;
             } else {
-                x = tileRight;
+                const float overlapLeft = (x + w) - tileLeft;
+                const float overlapRight = tileRight - x;
+                const float candidate = overlapLeft < overlapRight ? tileLeft - w : tileRight;
+                if (!resolvedX || std::abs(candidate - x) < std::abs(correctedX - x)) {
+                    correctedX = candidate;
+                }
+                resolvedX = true;
             }
-            velX = 0.0f;
         }
+    }
+    if (resolvedX) {
+        x = correctedX;
+        velX = 0.0f;
     }
 
     // Recompute after X resolution
@@ -184,16 +209,28 @@ bool Tilemap::ResolveCollision(float& x, float& y, float w, float h, float& velX
 
             hit = true;
 
-            float overlapTop    = (y + h) - tileTop;
-            float overlapBottom = tileBottom - y;
-
-            if (overlapTop < overlapBottom) {
-                y = tileTop - h;
+            if (movingDown) {
+                const float candidate = tileTop - h;
+                if (!resolvedY || candidate < correctedY) correctedY = candidate;
+                resolvedY = true;
+            } else if (movingUp) {
+                const float candidate = tileBottom;
+                if (!resolvedY || candidate > correctedY) correctedY = candidate;
+                resolvedY = true;
             } else {
-                y = tileBottom;
+                const float overlapTop = (y + h) - tileTop;
+                const float overlapBottom = tileBottom - y;
+                const float candidate = overlapTop < overlapBottom ? tileTop - h : tileBottom;
+                if (!resolvedY || std::abs(candidate - y) < std::abs(correctedY - y)) {
+                    correctedY = candidate;
+                }
+                resolvedY = true;
             }
-            velY = 0.0f;
         }
+    }
+    if (resolvedY) {
+        y = correctedY;
+        velY = 0.0f;
     }
 
     return hit;

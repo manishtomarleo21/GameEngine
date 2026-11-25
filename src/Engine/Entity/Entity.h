@@ -69,6 +69,9 @@ class Entity {
         void SetPivot(float x, float y);   // 0..1 range
         float GetPivotX() const { return m_PivotX; }
         float GetPivotY() const { return m_PivotY; }
+        void SetSpriteOffset(float x, float y) { m_SpriteOffsetX = x; m_SpriteOffsetY = y; }
+        float GetSpriteOffsetX() const { return m_SpriteOffsetX; }
+        float GetSpriteOffsetY() const { return m_SpriteOffsetY; }
 
         Animation* GetCurrentAnimation() { return m_CurrentAnim; }
         int GetAnimationFrameCount() const;
@@ -94,6 +97,8 @@ class Entity {
         float m_Rotation = 0.0f; //degree
         float m_PivotX = 0.5f;  // center by default
         float m_PivotY = 0.5f;
+        float m_SpriteOffsetX = 0.0f;
+        float m_SpriteOffsetY = 0.0f;
         bool m_FlipH = false;
         bool m_Visible = true;
         bool m_FlipV = false;

@@ -99,8 +99,7 @@ void Application::Run(){
 
             int windowW, windowH;
             m_Window->GetSize(windowW, windowH);
-            m_Scene->SetFloorY(static_cast<float>(windowH));
-            m_Scene->KeepPlayerInBounds(windowW, windowH);
+            m_Scene->KeepPlayerInBounds();
 
             // Camera follows player
             m_Scene->UpdateCamera(static_cast<float>(windowW), static_cast<float>(windowH), deltaTime);
@@ -268,6 +267,7 @@ void Application::Play() {
     if (m_Mode == EditorMode::Edit) {
         if (Entity* player = m_Scene->GetEntity(0)) {
             m_Scene->SetPlayerStart(player->GetX(), player->GetY());
+            player->SetVelocity(0.0f, 0.0f);
         }
         m_Scene->ClearWin();
     }

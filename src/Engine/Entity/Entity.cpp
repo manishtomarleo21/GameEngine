@@ -63,6 +63,8 @@ void Entity::Renderer(SDL_Renderer* renderer){
     SDL_FRect dest = { m_X, m_Y, m_W, m_H };
 
     if(m_Texture && m_Texture->GetSDLTexture()){
+        dest.x += m_SpriteOffsetX;
+        dest.y += m_SpriteOffsetY;
         SDL_FRect src;
         const SDL_FRect* srcPtr = nullptr;
         if (m_CurrentAnim) {

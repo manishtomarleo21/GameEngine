@@ -293,11 +293,16 @@ static std::string ResolveAssetDir(const std::string& relativeDir) {
 void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Renderer* renderer) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Save Scene")) {
-                scene.SaveToFile("assets/scenes/scene1.txt");
+            if (ImGui::MenuItem("Save Scene As...")) {
+                m_ConfirmSceneOverwrite = false;
+                m_SceneDialogError.clear();
+                m_OpenSaveSceneDialog = true;
+                m_OpenLoadSceneDialog = false;
             }
-            if (ImGui::MenuItem("Load Scene")) {
-                scene.LoadFromFile("assets/scenes/scene1.txt", renderer);
+            if (ImGui::MenuItem("Load Scene...")) {
+                m_SceneDialogError.clear();
+                m_OpenLoadSceneDialog = true;
+                m_OpenSaveSceneDialog = false;
             }
             ImGui::EndMenu();
         }
@@ -534,7 +539,8 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                             ImGui::SetCursorPosX(rowStartX + labelWidth);
                         };
                         const auto drawAxis = [&](const char* row, int axis, float& value,
-                                                  int colorIndex, bool disabled, bool first) {
+                                                  int colorIndex, bool disabled, bool first,
+                                                  float dragSpeed = 0.1f) {
                             if (!first) {
                                 ImGui::SameLine();
                             }
@@ -546,7 +552,7 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                                 ImVec2(ImGui::GetStyle().FramePadding.x + 7.0f,
                                        ImGui::GetStyle().FramePadding.y));
                             ImGui::SetNextItemWidth(axisWidth);
-                            const bool changed = ImGui::DragFloat("##value", &value, 0.1f, 0.0f, 0.0f, "%.2f");
+                            const bool changed = ImGui::DragFloat("##value", &value, dragSpeed, 0.0f, 0.0f, "%.2f");
                             ImGui::GetWindowDrawList()->AddRectFilled(
                                 ImVec2(markerPos.x + 3.0f, markerPos.y + 3.0f),
                                 ImVec2(markerPos.x + 6.0f, markerPos.y + ImGui::GetFrameHeight() - 3.0f),
@@ -562,10 +568,10 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                         float positionY = selected->GetY();
                         float positionZ = 0.0f;
                         startAxisRow("Position");
-                        if (drawAxis("Position", 0, positionX, 0, false, true)) {
+                        if (drawAxis("Position", 0, positionX, 0, false, true, 1.0f)) {
                             selected->SetPosition(positionX, positionY);
                         }
-                        if (drawAxis("Position", 1, positionY, 1, false, false)) {
+                        if (drawAxis("Position", 1, positionY, 1, false, false, 1.0f)) {
                             selected->SetPosition(positionX, positionY);
                         }
                         drawAxis("Position", 2, positionZ, 2, true, false);
@@ -654,16 +660,29 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                         ImGui::Text("Pivot");
 
                         float pivot[2] = { selected->GetPivotX(), selected->GetPivotY() };
-                        if (ImGui::DragFloat2("Pivot", pivot, 0.01f, 0.0f, 1.0f)) {
+                        if (ImGui::SliderFloat2("Pivot (normalized)", pivot, 0.0f, 1.0f, "%.2f")) {
                             selected->SetPivot(pivot[0], pivot[1]);
                         }
+                        ImGui::TextDisabled("Pivot affects rotation; it does not move the sprite.");
 
                         // Quick presets
                         if (ImGui::Button("Top-Left"))    selected->SetPivot(0.0f, 0.0f);
                         ImGui::SameLine();
                         if (ImGui::Button("Center"))      selected->SetPivot(0.5f, 0.5f);
                         ImGui::SameLine();
-                        if (ImGui::Button("Bottom"))      selected->SetPivot(0.5f, 1.0f);
+                        if (ImGui::Button("Bottom-Center")) selected->SetPivot(0.5f, 1.0f);
+
+                        float spriteOffset[] = {
+                            selected->GetSpriteOffsetX(),
+                            selected->GetSpriteOffsetY()
+                        };
+                        if (ImGui::DragFloat2("Sprite Draw Offset (px)", spriteOffset, 1.0f, 0.0f, 0.0f, "%.1f")) {
+                            selected->SetSpriteOffset(spriteOffset[0], spriteOffset[1]);
+                        }
+                        ImGui::TextDisabled("Positive Y moves artwork down; physics stays put.");
+                        if (ImGui::Button("Reset Sprite Offset")) {
+                            selected->SetSpriteOffset(0.0f, 0.0f);
+                        }
 
                         bool flipH = selected->GetFlipHorizontal();
                         if (ImGui::Checkbox("Flip X", &flipH)) {
@@ -678,6 +697,15 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                             ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.5f, 1.0f), "Texture: assigned");
                         } else {
                             ImGui::TextDisabled("Texture: none");
+                        }
+
+                        ImGui::Separator();
+                        ImGui::Text("Movement Mode");
+
+                        int mode = (scene.GetMovementMode() == MovementMode::Platformer) ? 1 : 0;
+                        const char* modes[] = { "Free / Top-Down", "Platformer" };
+                        if (ImGui::Combo("Movement Mode", &mode, modes, 2)) {
+                            scene.SetMovementMode(mode == 1 ? MovementMode::Platformer : MovementMode::Free);
                         }
 
                         ImGui::Separator();
@@ -877,11 +905,16 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                 }
 
                 ImGui::Separator();
-                if (ImGui::Button("Save Scene", ImVec2(-1, 0))) {
-                    scene.SaveToFile("assets/scenes/scene1.txt");
+                if (ImGui::Button("Save Scene As...", ImVec2(-1, 0))) {
+                    m_ConfirmSceneOverwrite = false;
+                    m_SceneDialogError.clear();
+                    m_OpenSaveSceneDialog = true;
+                    m_OpenLoadSceneDialog = false;
                 }
-                if (ImGui::Button("Load Scene", ImVec2(-1, 0))) {
-                    scene.LoadFromFile("assets/scenes/scene1.txt", renderer);
+                if (ImGui::Button("Load Scene...", ImVec2(-1, 0))) {
+                    m_SceneDialogError.clear();
+                    m_OpenLoadSceneDialog = true;
+                    m_OpenSaveSceneDialog = false;
                 }
 
                 ImGui::Separator();
@@ -909,6 +942,14 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                 if (ImGui::Button("Explosion", ImVec2(-1, 0))) {
                     scene.GetParticles().EmitPreset(ParticlePreset::Explosion, 400.0f, 300.0f);
                 }
+
+                ImGui::Separator();
+                ImGui::Text("Movement");
+                int mode = (scene.GetMovementMode() == MovementMode::Platformer) ? 1 : 0;
+                const char* modes[] = { "Free / Top-Down", "Platformer" };
+                if (ImGui::Combo("Movement Mode", &mode, modes, 2)) {
+                    scene.SetMovementMode(mode == 1 ? MovementMode::Platformer : MovementMode::Free);
+                }    
 
                 ImGui::Separator();
                 ImGui::Text("Tilemap");
@@ -1088,6 +1129,147 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
         float rightWidth = ImGui::CalcTextSize(rightText).x;
         ImGui::SameLine(ImGui::GetWindowWidth() - rightWidth - 12.0f);
         ImGui::TextUnformatted(rightText);
+    }
+    ImGui::End();
+
+    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(1.0f, 1.0f), ImGuiCond_Always);
+    const ImGuiWindowFlags sceneDialogHostFlags =
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoNav |
+        ImGuiWindowFlags_NoInputs |
+        ImGuiWindowFlags_NoBackground |
+        ImGuiWindowFlags_NoFocusOnAppearing;
+    ImGui::Begin("##SceneDialogHost", nullptr, sceneDialogHostFlags);
+    if (m_OpenSaveSceneDialog) {
+        ImGui::OpenPopup("Save Scene As");
+        m_OpenSaveSceneDialog = false;
+    }
+    if (m_OpenLoadSceneDialog) {
+        ImGui::OpenPopup("Load Scene");
+        m_OpenLoadSceneDialog = false;
+    }
+
+    const std::string sceneDirectory = ResolveAssetDir("assets/scenes");
+    if (ImGui::BeginPopupModal("Save Scene As", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (!m_ConfirmSceneOverwrite) {
+            ImGui::InputText("Filename", m_SaveSceneFilename, sizeof(m_SaveSceneFilename));
+            ImGui::TextDisabled("Scenes are saved in %s", sceneDirectory.c_str());
+
+            if (ImGui::Button("Save")) {
+                m_SceneDialogError.clear();
+                std::string filename = m_SaveSceneFilename;
+                const fs::path filenamePath(filename);
+                if (filename.empty() || filename == "." || filename == ".." ||
+                    filename.find_first_of("/\\") != std::string::npos ||
+                    filenamePath.filename().string() != filename) {
+                    m_SceneDialogError = "Enter a filename without a directory path.";
+                } else {
+                    std::string extension = filenamePath.extension().string();
+                    std::transform(extension.begin(), extension.end(), extension.begin(),
+                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                    if (extension.empty()) {
+                        filename += ".txt";
+                    } else if (extension != ".txt") {
+                        m_SceneDialogError = "Scene filenames must use the .txt extension.";
+                    }
+
+                    if (m_SceneDialogError.empty()) {
+                        const fs::path target = fs::path(sceneDirectory) / filename;
+                        std::error_code ec;
+                        const bool exists = fs::exists(target, ec);
+                        if (ec) {
+                            m_SceneDialogError = "Could not check whether the save file exists.";
+                        } else if (exists) {
+                            m_PendingSavePath = target.string();
+                            m_ConfirmSceneOverwrite = true;
+                        } else if (scene.SaveToFile(target.string())) {
+                            ImGui::CloseCurrentPopup();
+                        } else {
+                            m_SceneDialogError = "Failed to save the scene.";
+                        }
+                    }
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel")) {
+                m_SceneDialogError.clear();
+                ImGui::CloseCurrentPopup();
+            }
+        } else {
+            ImGui::TextWrapped("A scene named \"%s\" already exists. Replace it?",
+                fs::path(m_PendingSavePath).filename().string().c_str());
+            if (ImGui::Button("Replace")) {
+                if (scene.SaveToFile(m_PendingSavePath)) {
+                    m_ConfirmSceneOverwrite = false;
+                    m_PendingSavePath.clear();
+                    ImGui::CloseCurrentPopup();
+                } else {
+                    m_SceneDialogError = "Failed to replace the scene.";
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel replacement")) {
+                m_ConfirmSceneOverwrite = false;
+                m_PendingSavePath.clear();
+                m_SceneDialogError.clear();
+            }
+        }
+
+        if (!m_SceneDialogError.empty()) {
+            ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s",
+                m_SceneDialogError.c_str());
+        }
+        ImGui::EndPopup();
+    }
+
+    if (ImGui::BeginPopupModal("Load Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        const auto sceneFiles = ListFiles(sceneDirectory, {".txt"});
+        const bool hasSceneFiles = !sceneFiles.empty();
+        if (sceneFiles.empty()) {
+            ImGui::TextDisabled("No saved scenes found.");
+        } else {
+            const char* preview = m_LoadSceneFilename.empty()
+                ? "Select a scene"
+                : m_LoadSceneFilename.c_str();
+            if (ImGui::BeginCombo("Saved scene", preview)) {
+                for (const auto& filename : sceneFiles) {
+                    const bool selected = filename == m_LoadSceneFilename;
+                    if (ImGui::Selectable(filename.c_str(), selected)) {
+                        m_LoadSceneFilename = filename;
+                        m_SceneDialogError.clear();
+                    }
+                    if (selected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        ImGui::BeginDisabled(!hasSceneFiles);
+        if (ImGui::Button("Load")) {
+            if (m_LoadSceneFilename.empty()) {
+                m_SceneDialogError = "Select a saved scene to load.";
+            } else if (scene.LoadFromFile(
+                           (fs::path(sceneDirectory) / m_LoadSceneFilename).string(), renderer)) {
+                m_SceneDialogError.clear();
+                ImGui::CloseCurrentPopup();
+            } else {
+                m_SceneDialogError = "Failed to load the selected scene.";
+            }
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) {
+            m_SceneDialogError.clear();
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (!m_SceneDialogError.empty()) {
+            ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s",
+                m_SceneDialogError.c_str());
+        }
+        ImGui::EndPopup();
     }
     ImGui::End();
 }

@@ -14,7 +14,9 @@ void Collision::Resolve(Entity& a, Entity& b) {
 
     if (overlapX < overlapY) {
         // Resolve on X axis
-        if (a.GetX() < b.GetX()) {
+        float centerA = a.GetX() + a.GetW() * 0.5f;
+        float centerB = b.GetX() + b.GetW() * 0.5f;
+        if (centerA < centerB) {
             a.SetPosition(a.GetX() - overlapX, a.GetY());
         } else {
             a.SetPosition(a.GetX() + overlapX, a.GetY());
@@ -22,7 +24,9 @@ void Collision::Resolve(Entity& a, Entity& b) {
         a.SetVelocity(0.0f, a.GetVelY());
     } else {
         // Resolve on Y axis
-        if (a.GetY() < b.GetY()) {
+        float centerA = a.GetY() + a.GetH() * 0.5f;
+        float centerB = b.GetY() + b.GetH() * 0.5f;
+        if (centerA < centerB) {
             a.SetPosition(a.GetX(), a.GetY() - overlapY);
         } else {
             a.SetPosition(a.GetX(), a.GetY() + overlapY);

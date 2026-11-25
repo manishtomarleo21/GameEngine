@@ -6,6 +6,7 @@
 #include "Engine/Camera/Camera.h"
 #include "Engine/Particles/ParticleSystem.h"
 #include "Engine/Tilemap/Tilemap.h"
+#include "Engine/Core/MovementMode.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -26,7 +27,7 @@ class Scene
         void Renderer(SDL_Renderer* renderer, float viewW, float viewH);
 
         // Helper to keep player inside window
-        void KeepPlayerInBounds(int windowWidth, int windowHeight);
+        void KeepPlayerInBounds();
         void SetPlayerTexture(std::shared_ptr<Texture> texture);
         
         void AddEntity(float x, float y, std::shared_ptr<Texture> texture);
@@ -90,6 +91,10 @@ class Scene
         const std::string& GetBackgroundFrontPath() const { return m_BackgroundFrontPath; }
         float GetBackgroundBackFactor() const { return m_BackgroundBackFactor; }
         float GetBackgroundFrontFactor() const { return m_BackgroundFrontFactor; }
+
+        MovementMode m_MovementMode = MovementMode::Free;
+        MovementMode GetMovementMode() const { return m_MovementMode; }
+        void SetMovementMode(MovementMode mode) { m_MovementMode = mode; }
     private:
         std::vector<std::unique_ptr<Entity>> m_Entities;
         Camera m_Camera;
@@ -105,6 +110,8 @@ class Scene
         int m_PaintTileId = 1;
         float m_PlayerStartX = 100.0f;
         float m_PlayerStartY = 200.0f;
+        float m_WorldWidth = 2000.0f;
+        float m_WorldHeight = 1200.0f;
         bool  m_Win = false;
         int m_GoalEntity = -1;
         std::vector<BackgroundLayer> m_Backgrounds;

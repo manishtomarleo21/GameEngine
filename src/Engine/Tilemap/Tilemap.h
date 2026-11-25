@@ -37,7 +37,8 @@ public:
 
     bool IsSolid(int tileId) const;
     bool IsSolidAtWorld(float worldX, float worldY) const;
-    bool ResolveCollision(float& x, float& y, float w, float h, float& velX, float& velY) const;
+    bool ResolveCollision(float previousX, float previousY, float& x, float& y,
+                          float w, float h, float& velX, float& velY) const;
 
     void SetSolidTile(int tileId, bool solid);
     void SetAllNonZeroSolid(bool enabled);
