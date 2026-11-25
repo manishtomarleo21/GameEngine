@@ -98,9 +98,10 @@ void Scene::Update(float deltaTime){
             break;
         }
     }
-    // Resolve collisions for every gravity-enabled entity against the scene geometry.
-    for (const auto& entity : m_Entities) {
-        if (entity && entity->GetGravityScale() > 0.0f) {
+    // The player must collide with solid entities even in zero-gravity movement modes.
+    for (size_t i = 0; i < m_Entities.size(); ++i) {
+        const auto& entity = m_Entities[i];
+        if (entity && (i == 0 || entity->GetGravityScale() > 0.0f)) {
             Collision::ProcessPlayerCollisions(*entity, m_Entities);
         }
     }
@@ -304,6 +305,7 @@ void Scene::DuplicateSelectedEntity() {
     copy->SetFriction(selected->GetFriction());
     copy->SetVelocity(selected->GetVelX(), selected->GetVelY());
     copy->SetSpriteOffset(selected->GetSpriteOffsetX(), selected->GetSpriteOffsetY());
+    copy->SetSolid(selected->IsSolid());
 
     copy->SetTexture(selected->GetTexture());
 
@@ -320,7 +322,7 @@ bool Scene::SaveToFile(const std::string& path){
         return false;
     }
     // Header
-    file << "SCENE_VERSION 4\n";
+    file << "SCENE_VERSION 5\n";
     // Background
     file << "BG " << m_BgR << " " << m_BgG << " " << m_BgB << "\n";
     file << "MOVEMENT_MODE " << static_cast<int>(m_MovementMode) << "\n";
@@ -351,7 +353,8 @@ bool Scene::SaveToFile(const std::string& path){
              << entity->GetBounciness() << " "
              << std::quoted(entity->GetTexture() ? entity->GetTexture()->GetPath() : "") << " "
              << entity->GetSpriteOffsetX() << " "
-             << entity->GetSpriteOffsetY()
+             << entity->GetSpriteOffsetY() << " "
+             << entity->IsSolid()
              << "\n";
     }
     m_Tilemap.Save(file);
@@ -434,13 +437,14 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
             float gravity, friction, bounciness;
             float spriteOffsetX = 0.0f;
             float spriteOffsetY = 0.0f;
+            bool solid = true; // Older scene files had no solid flag and collided by default.
             std::string name;
             std::string texturePath;
 
             ss >> std::quoted(name) >> x >> y >> w >> h >> shape >> r >> g >> b
                >> gravity >> friction >> bounciness;
             ss >> std::quoted(texturePath);
-            ss >> spriteOffsetX >> spriteOffsetY;
+            ss >> spriteOffsetX >> spriteOffsetY >> solid;
 
             auto entity = std::make_unique<Entity>(x, y, w, h);
             entity->SetName(name);
@@ -450,6 +454,7 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
             entity->SetFriction(friction);
             entity->SetBounciness(bounciness);
             entity->SetSpriteOffset(spriteOffsetX, spriteOffsetY);
+            entity->SetSolid(solid);
             if (auto texture = loadTexture(texturePath)) {
                 entity->SetTexture(texture);
             }

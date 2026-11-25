@@ -86,6 +86,9 @@ class Entity {
         void PlayFrames(bool loop = true);
         void StopFrames();
 
+        void SetSolid(bool solid) { m_Solid = solid; }
+        bool IsSolid() const { return m_Solid; }
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -107,6 +110,7 @@ class Entity {
         float m_FrameTimer = 0.0f;
         bool  m_FramesPlaying = false;
         bool  m_FramesLoop = true;
+        bool m_Solid = false;
 
         Uint8 m_ColorR = 255;
         Uint8 m_ColorG = 255;

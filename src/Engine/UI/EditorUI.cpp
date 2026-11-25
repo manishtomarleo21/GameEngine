@@ -803,6 +803,11 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                             selected->SetGravityScale(hasGravity ? 1.0f : 0.0f);
                         }
 
+                        bool solid = selected->IsSolid();
+                        if (ImGui::Checkbox("Solid (blocks player)", &solid)) {
+                            selected->SetSolid(solid);
+                        }
+
                         float friction = selected->GetFriction();
                         if (ImGui::SliderFloat("Friction", &friction, 0.0f, 1.0f)) {
                             selected->SetFriction(friction);

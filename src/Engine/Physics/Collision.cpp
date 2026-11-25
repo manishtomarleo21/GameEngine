@@ -39,7 +39,7 @@ void Collision::ProcessPlayerCollisions(Entity& player,
                                         const std::vector<std::unique_ptr<Entity>>& entities) {
     for (const auto& entity : entities) {
         Entity* other = entity.get();
-        if (!other || other == &player) continue;
+        if (!other || other == &player || !other->IsSolid()) continue;
         if (Check(player, *other)) {
             Resolve(player, *other);
         }
