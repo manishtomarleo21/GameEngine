@@ -89,6 +89,18 @@ class Entity {
         void SetSolid(bool solid) { m_Solid = solid; }
         bool IsSolid() const { return m_Solid; }
 
+        void SetCollider(float offsetX, float offsetY, float colW, float colH);
+        void SetUseCustomCollider(bool enabled) { m_UseCustomCollider = enabled; }
+        bool UseCustomCollider() const { return m_UseCustomCollider; }
+        void SetAutoColliderFromImage(bool enabled);
+        bool UseAutoColliderFromImage() const { return m_AutoColliderFromImage; }
+
+        void GetColliderRect(float& outX, float& outY, float& outW, float& outH) const;
+        float GetColOffsetX() const { return m_ColOffsetX; }
+        float GetColOffsetY() const { return m_ColOffsetY; }
+        float GetColW() const { return m_ColW; }
+        float GetColH() const { return m_ColH; }
+
     private:
         float m_X, m_Y;
         float m_W, m_H;
@@ -111,6 +123,13 @@ class Entity {
         bool  m_FramesPlaying = false;
         bool  m_FramesLoop = true;
         bool m_Solid = false;
+        bool  m_UseCustomCollider = false;
+        bool m_AutoColliderFromImage = false;
+        float m_ColOffsetX = 0.0f;
+        float m_ColOffsetY = 0.0f;
+        float m_ColW = 0.0f;
+        float m_ColH = 0.0f;
+        
 
         Uint8 m_ColorR = 255;
         Uint8 m_ColorG = 255;

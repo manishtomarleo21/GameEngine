@@ -220,3 +220,49 @@ bool Entity::AddAnimationFrame(float u, float v, float w, float h, float duratio
     m_CurrentAnim->AddFrame(u, v, w, h, duration);
     return true;
 }
+
+void Entity::SetCollider(float offsetX, float offsetY, float colW, float colH) {
+    m_AutoColliderFromImage = false;
+    m_ColOffsetX = offsetX;
+    m_ColOffsetY = offsetY;
+    m_ColW = colW;
+    m_ColH = colH;
+    m_UseCustomCollider = true;
+}
+
+void Entity::SetAutoColliderFromImage(bool enabled) {
+    if (m_AutoColliderFromImage && !enabled) {
+        float x, y, w, h;
+        GetColliderRect(x, y, w, h);
+        m_ColOffsetX = x - m_X;
+        m_ColOffsetY = y - m_Y;
+        m_ColW = w;
+        m_ColH = h;
+    }
+    m_AutoColliderFromImage = enabled;
+}
+
+void Entity::GetColliderRect(float& outX, float& outY, float& outW, float& outH) const {
+    if (m_UseCustomCollider && m_AutoColliderFromImage && m_Texture) {
+        float x, y, w, h;
+        if (m_Texture->GetOpaqueBounds(x, y, w, h)) {
+            outX = m_X + m_SpriteOffsetX + x * m_W;
+            outY = m_Y + m_SpriteOffsetY + y * m_H;
+            outW = w * m_W;
+            outH = h * m_H;
+            return;
+        }
+    }
+
+    if (m_UseCustomCollider && m_ColW > 0.0f && m_ColH > 0.0f) {
+        outX = m_X + m_ColOffsetX;
+        outY = m_Y + m_ColOffsetY;
+        outW = m_ColW;
+        outH = m_ColH;
+    } else {
+        outX = m_X;
+        outY = m_Y;
+        outW = m_W;
+        outH = m_H;
+    }
+}

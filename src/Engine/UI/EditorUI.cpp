@@ -808,6 +808,37 @@ void EditorUI::Draw(Scene& scene, float deltaTime, Application& app, SDL_Rendere
                             selected->SetSolid(solid);
                         }
 
+                        bool useCol = selected->UseCustomCollider();
+                        if (ImGui::Checkbox("Custom Collider", &useCol)) {
+                            selected->SetUseCustomCollider(useCol);
+                        }
+
+                        if (useCol) {
+                            if (ImGui::Button("Auto-fit Collider to Image")) {
+                                selected->SetAutoColliderFromImage(true);
+                            }
+                            if (selected->UseAutoColliderFromImage()) {
+                                ImGui::TextDisabled("Collider follows non-transparent image bounds.");
+                            }
+
+                            float colliderX, colliderY, cw, ch;
+                            selected->GetColliderRect(colliderX, colliderY, cw, ch);
+                            float ox = colliderX - selected->GetX();
+                            float oy = colliderY - selected->GetY();
+
+                            bool changed = false;
+                            changed |= ImGui::DragFloat("Col Offset X", &ox, 1.0f);
+                            changed |= ImGui::DragFloat("Col Offset Y", &oy, 1.0f);
+                            changed |= ImGui::DragFloat("Col W", &cw, 1.0f, 1.0f, selected->GetW());
+                            changed |= ImGui::DragFloat("Col H", &ch, 1.0f, 1.0f, selected->GetH());
+
+                            if (changed) {
+                                selected->SetCollider(ox, oy, cw, ch);
+                            }
+
+                            ImGui::TextDisabled("Draw = full sprite, Solid = this box");
+                        }
+
                         float friction = selected->GetFriction();
                         if (ImGui::SliderFloat("Friction", &friction, 0.0f, 1.0f)) {
                             selected->SetFriction(friction);

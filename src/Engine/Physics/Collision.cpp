@@ -2,36 +2,58 @@
 #include <algorithm>
 
 bool Collision::Check(const Entity& a, const Entity& b) {
-    return (a.GetX() < b.GetX() + b.GetW() &&
-            a.GetX() + a.GetW() > b.GetX() &&
-            a.GetY() < b.GetY() + b.GetH() &&
-            a.GetY() + a.GetH() > b.GetY());
+    float ax, ay, aw, ah;
+    float bx, by, bw, bh;
+    a.GetColliderRect(ax, ay, aw, ah);
+    b.GetColliderRect(bx, by, bw, bh);
+
+    return ax < bx + bw &&
+           ax + aw > bx &&
+           ay < by + bh &&
+           ay + ah > by;
 }
 
 void Collision::Resolve(Entity& a, Entity& b) {
-    float overlapX = std::min(a.GetX() + a.GetW(), b.GetX() + b.GetW()) - std::max(a.GetX(), b.GetX());
-    float overlapY = std::min(a.GetY() + a.GetH(), b.GetY() + b.GetH()) - std::max(a.GetY(), b.GetY());
+    float ax, ay, aw, ah;
+    float bx, by, bw, bh;
+    a.GetColliderRect(ax, ay, aw, ah);
+    b.GetColliderRect(bx, by, bw, bh);
+
+    float overlapX = std::min(ax + aw, bx + bw) - std::max(ax, bx);
+    float overlapY = std::min(ay + ah, by + bh) - std::max(ay, by);
+
+    if (overlapX <= 0.0f || overlapY <= 0.0f) return;
 
     if (overlapX < overlapY) {
         // Resolve on X axis
-        float centerA = a.GetX() + a.GetW() * 0.5f;
-        float centerB = b.GetX() + b.GetW() * 0.5f;
-        if (centerA < centerB) {
-            a.SetPosition(a.GetX() - overlapX, a.GetY());
-        } else {
-            a.SetPosition(a.GetX() + overlapX, a.GetY());
-        }
+        float centerA = ax + aw * 0.5f;
+        float centerB = bx + bw * 0.5f;
+
+        float newColX = ax;
+        if (centerA < centerB) newColX = ax - overlapX;
+        else                   newColX = ax + overlapX;
+
+        // convert collider x back to entity x
+        float offsetX = ax - a.GetX(); // same as col offset if custom
+        a.SetPosition(newColX - offsetX, a.GetY());
         a.SetVelocity(0.0f, a.GetVelY());
     } else {
         // Resolve on Y axis
-        float centerA = a.GetY() + a.GetH() * 0.5f;
-        float centerB = b.GetY() + b.GetH() * 0.5f;
-        if (centerA < centerB) {
-            a.SetPosition(a.GetX(), a.GetY() - overlapY);
-        } else {
-            a.SetPosition(a.GetX(), a.GetY() + overlapY);
-        }
+        float centerA = ay + ah * 0.5f;
+        float centerB = by + bh * 0.5f;
+
+        float newColY = ay;
+        if (centerA < centerB) newColY = ay - overlapY; // a above b → land on top
+        else                   newColY = ay + overlapY;
+
+        float offsetY = ay - a.GetY();
+        a.SetPosition(a.GetX(), newColY - offsetY);
         a.SetVelocity(a.GetVelX(), 0.0f);
+
+        // mark grounded when landing on top
+        // if (centerA < centerB) {
+        //     a.SetGrounded(true); // if you have this
+        // }
     }
 }
 

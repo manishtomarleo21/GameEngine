@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cmath>
 #include <iomanip>
+#include <limits>
 
 void Scene::SetBackgroundLayers(
     std::shared_ptr<Texture> back,
@@ -322,7 +323,8 @@ bool Scene::SaveToFile(const std::string& path){
         return false;
     }
     // Header
-    file << "SCENE_VERSION 5\n";
+    file << "SCENE_VERSION 7\n";
+    file << std::setprecision(std::numeric_limits<float>::max_digits10);
     // Background
     file << "BG " << m_BgR << " " << m_BgG << " " << m_BgB << "\n";
     file << "MOVEMENT_MODE " << static_cast<int>(m_MovementMode) << "\n";
@@ -355,6 +357,12 @@ bool Scene::SaveToFile(const std::string& path){
              << entity->GetSpriteOffsetX() << " "
              << entity->GetSpriteOffsetY() << " "
              << entity->IsSolid()
+             << " " << entity->UseCustomCollider()
+             << " " << entity->GetColOffsetX()
+             << " " << entity->GetColOffsetY()
+             << " " << entity->GetColW()
+             << " " << entity->GetColH()
+             << " " << entity->UseAutoColliderFromImage()
              << "\n";
     }
     m_Tilemap.Save(file);
@@ -438,6 +446,13 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
             float spriteOffsetX = 0.0f;
             float spriteOffsetY = 0.0f;
             bool solid = true; // Older scene files had no solid flag and collided by default.
+            bool useCustomCollider = false;
+            float colliderOffsetX = 0.0f;
+            float colliderOffsetY = 0.0f;
+            float colliderW = 0.0f;
+            float colliderH = 0.0f;
+            bool autoColliderFromImage = false;
+            bool hasAutoColliderMode = false;
             std::string name;
             std::string texturePath;
 
@@ -445,6 +460,15 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
                >> gravity >> friction >> bounciness;
             ss >> std::quoted(texturePath);
             ss >> spriteOffsetX >> spriteOffsetY >> solid;
+            const bool hasCustomCollider =
+                static_cast<bool>(ss >> useCustomCollider
+                                     >> colliderOffsetX
+                                     >> colliderOffsetY
+                                     >> colliderW
+                                     >> colliderH);
+            if (hasCustomCollider) {
+                hasAutoColliderMode = static_cast<bool>(ss >> autoColliderFromImage);
+            }
 
             auto entity = std::make_unique<Entity>(x, y, w, h);
             entity->SetName(name);
@@ -455,8 +479,17 @@ bool Scene::LoadFromFile(const std::string& path, SDL_Renderer* renderer) {
             entity->SetBounciness(bounciness);
             entity->SetSpriteOffset(spriteOffsetX, spriteOffsetY);
             entity->SetSolid(solid);
+            if (hasCustomCollider) {
+                entity->SetCollider(colliderOffsetX, colliderOffsetY, colliderW, colliderH);
+            }
             if (auto texture = loadTexture(texturePath)) {
                 entity->SetTexture(texture);
+            }
+            if (hasAutoColliderMode) {
+                entity->SetAutoColliderFromImage(autoColliderFromImage);
+            }
+            if (hasCustomCollider) {
+                entity->SetUseCustomCollider(useCustomCollider);
             }
 
             m_Entities.push_back(std::move(entity));
